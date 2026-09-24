@@ -36,7 +36,7 @@ const problems = [...errors];
 const warnings = [];
 
 // ---------------------------------------------------------------- static
-const KNOWN_DIRS = new Set(['bg', 'title', 'clock', 'time', 'set', 'add', 'unset', 'health', 'morale', 'resethp', 'xp', 'thought', 'task', 'done', 'clue', 'align', 'attr', 'sig', 'act', 'music', 'sfx', 'weather', 'checkpoint', 'hub', 'pause', 'end', 'gameover', 'openfile']);
+const KNOWN_DIRS = new Set(['bg', 'title', 'clock', 'time', 'set', 'add', 'unset', 'health', 'morale', 'resethp', 'xp', 'thought', 'task', 'done', 'clue', 'align', 'attr', 'sig', 'act', 'music', 'sfx', 'weather', 'checkpoint', 'hub', 'pause', 'end', 'gameover', 'openfile', 'insert']);
 const SCENES = new Set(C.painter.scenes);
 const SCENES3D = new Set(C.scene3d.scenes);
 const MUSIC = new Set(['dream', 'wind', 'glass', 'interior', 'ball', 'under', 'break', 'dawn', 'silence']);
@@ -80,6 +80,8 @@ for (const id in nodes) {
       if (!KNOWN_DIRS.has(it.name)) problems.push(`${id}: unknown directive @${it.name}`);
       if (it.name === 'bg' && !SCENES.has(it.arg)) problems.push(`${id}: unknown 2D scene ${it.arg}`);
       if (it.name === 'bg' && !SCENES3D.has(it.arg)) problems.push(`${id}: unknown 3D scene ${it.arg}`);
+      if (it.name === 'insert' && !SCENES3D.has(it.arg)) problems.push(`${id}: unknown 3D insert ${it.arg}`);
+      if (it.name === 'insert' && !SCENES.has(it.arg)) problems.push(`${id}: unknown 2D insert ${it.arg}`);
       if (it.name === 'music' && !MUSIC.has(it.arg)) problems.push(`${id}: unknown music ${it.arg}`);
       if (it.name === 'sfx' && !SFX.has(it.arg)) problems.push(`${id}: unknown sfx ${it.arg}`);
       if (it.name === 'thought' && !C.THOUGHTS[it.arg]) problems.push(`${id}: unknown thought ${it.arg}`);

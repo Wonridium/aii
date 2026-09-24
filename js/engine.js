@@ -371,7 +371,8 @@
   async function dir(name, arg) {
     var m;
     switch (name) {
-      case 'bg': S.bg = arg; setBg(arg); break;
+      case 'bg': S.bg = arg; S.insert = null; setBg(arg); break;
+      case 'insert': S.insert = arg; showInsert(arg); break;
       case 'title': S.title = interp(arg); renderHUD(); break;
       case 'clock': S.clock = parseTime(arg); renderHUD(); break;
       case 'time': advance(+arg); break;
@@ -455,6 +456,19 @@
     bgKey = key;
     paintScene(key);
     if (C.audio && C.audio.scene) C.audio.scene(key, S ? S.v : {});
+  }
+  // A close-up (a "semi-décor") held for the length of a passage; the scene
+  // returns when the player next chooses.
+  function showInsert(key) {
+    if (key === bgKey) return;
+    bgKey = key;
+    paintScene(key);
+    if (C.audio && C.audio.insert) C.audio.insert(key, S ? S.v : {});
+  }
+  function clearInsert() {
+    if (!S || !S.insert) return;
+    S.insert = null;
+    if (S.bg && bgKey !== S.bg) { bgKey = S.bg; paintScene(S.bg); if (C.audio && C.audio.insert) C.audio.insert(null, S.v); }
   }
   function setGraphics(mode) {
     settings.gfx = mode;
@@ -603,6 +617,7 @@
     busy = true;
     voiceStop();
     sfx('click');
+    clearInsert();
     snapshotLast();
     markOld();
     choicesEl.innerHTML = '';
@@ -615,6 +630,7 @@
     busy = true;
     voiceStop();
     sfx('click');
+    clearInsert();
     snapshotLast();
     markOld();
     choicesEl.innerHTML = '';
@@ -679,6 +695,7 @@
     S.log.forEach(function (e) { renderEntry(e, true); });
     bgKey = null;
     setBg(S.bg);
+    if (S.insert) showInsert(S.insert);
     if (C.audio) C.audio.set(S.music);
     if (C.weather) C.weather.set(S.weather);
     renderHUD();

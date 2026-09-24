@@ -663,6 +663,14 @@
   SCENES.gull = SCENES.gate;
   SCENES.bench = SCENES.crossing;
   SCENES.kitchen = SCENES.mending;
+  // close-ups fall back to the place they belong to
+  var INSERT_HOME = {
+    v_hand: 'body', v_fist: 'body', v_rope: 'body', v_watch: 'body', v_ledger: 'hut', v_letter: 'hut', v_bell: 'hut',
+    v_chisel: 'hut', v_trapdoor: 'hut', v_boathook: 'hut', v_cake: 'hut', v_valuation: 'booth', v_pipe: 'works', v_jars: 'chapel',
+    v_notebook: 'glass', v_snowname: 'glass', v_saws: 'cutters', v_chestnuts: 'gate', v_raining: 'ballroom', v_crack: 'break',
+    v_lantern: 'dawn', v_cairn: 'crossing', v_broadsheet: 'booth', narrows: 'crossing', press: 'booth'
+  };
+  Object.keys(INSERT_HOME).forEach(function (k) { SCENES[k] = SCENES[INSERT_HOME[k]]; });
 
   // ------------------------------------------------------------ display
   var canvases = [], front = 0, cache = {}, cacheOrder = [];

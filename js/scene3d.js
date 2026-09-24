@@ -13,6 +13,10 @@
 
   // ---------------------------------------------------------------- post shader
   var POST_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+  // Pass: a four-sector Kuwahara filter melts detail into brush-sized patches;
+  // the image gradient then orients bristle streaks along forms, dark ink
+  // gathers on strong edges like an underdrawing, and the colour is graded
+  // warm-in-the-lights, cool-in-the-shadows over a canvas weave.
   var POST_FS = [
     'precision highp float;',
     'uniform sampler2D tDiffuse; uniform vec2 res; uniform float time; uniform float strength;',
@@ -20,14 +24,28 @@
     'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float noise(vec2 p){ vec2 i = floor(p); vec2 f = fract(p); f = f*f*(3.0-2.0*f);',
     '  return mix(mix(hash(i), hash(i+vec2(1.0,0.0)), f.x), mix(hash(i+vec2(0.0,1.0)), hash(i+vec2(1.0,1.0)), f.x), f.y); }',
+    'float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }',
     'void main(){',
     '  vec2 px = 1.0 / res;',
     '  vec2 q = vUv * res;',
-    '  vec2 wob = vec2(noise(q / 21.0), noise(q / 21.0 + 31.7)) - 0.5;',
-    '  vec2 uv = vUv + wob * px * 6.0 * strength;',
+    '  vec2 wob = vec2(noise(q / 23.0), noise(q / 23.0 + 31.7)) - 0.5;',
+    '  vec2 uv = vUv + wob * px * 5.0 * strength;',
+    // gradient of the source (Sobel), for stroke direction and ink
+    '  float tl = lum(texture2D(tDiffuse, uv + px * vec2(-1.5, -1.5)).rgb);',
+    '  float tc = lum(texture2D(tDiffuse, uv + px * vec2( 0.0, -1.5)).rgb);',
+    '  float tr = lum(texture2D(tDiffuse, uv + px * vec2( 1.5, -1.5)).rgb);',
+    '  float ml = lum(texture2D(tDiffuse, uv + px * vec2(-1.5,  0.0)).rgb);',
+    '  float mr = lum(texture2D(tDiffuse, uv + px * vec2( 1.5,  0.0)).rgb);',
+    '  float bl = lum(texture2D(tDiffuse, uv + px * vec2(-1.5,  1.5)).rgb);',
+    '  float bc = lum(texture2D(tDiffuse, uv + px * vec2( 0.0,  1.5)).rgb);',
+    '  float br = lum(texture2D(tDiffuse, uv + px * vec2( 1.5,  1.5)).rgb);',
+    '  float gx = (tr + 2.0 * mr + br) - (tl + 2.0 * ml + bl);',
+    '  float gy = (bl + 2.0 * bc + br) - (tl + 2.0 * tc + tr);',
+    '  float edge = sqrt(gx * gx + gy * gy);',
+    // Kuwahara
     '  vec3 m0 = vec3(0.0); vec3 m1 = vec3(0.0); vec3 m2 = vec3(0.0); vec3 m3 = vec3(0.0);',
     '  vec3 s0 = vec3(0.0); vec3 s1 = vec3(0.0); vec3 s2 = vec3(0.0); vec3 s3 = vec3(0.0);',
-    '  float sp = 1.2 * strength + 0.3;',
+    '  float sp = 1.0 * strength + 0.35;',
     '  for (int j = 0; j <= 4; j++) { for (int i = 0; i <= 4; i++) {',
     '    vec2 o = vec2(float(i), float(j)) * px * sp;',
     '    vec3 c;',
@@ -45,17 +63,33 @@
     '  if (v1 < mv) { mv = v1; col = m1; }',
     '  if (v2 < mv) { mv = v2; col = m2; }',
     '  if (v3 < mv) { mv = v3; col = m3; }',
-    '  float ang = noise(vUv * 4.0 + 3.1) * 6.2831;',
-    '  vec2 d = vec2(cos(ang), sin(ang));',
-    '  float st = noise(vec2(dot(q, d) * 0.05, dot(q, vec2(-d.y, d.x)) * 0.6));',
-    '  col *= 0.9 + 0.2 * st * strength + 0.1 * (1.0 - strength);',
-    '  float weave = noise(q * 0.8) * 0.5 + noise(q * 0.31) * 0.5;',
-    '  col *= 0.95 + 0.08 * weave;',
-    '  float l = dot(col, vec3(0.299, 0.587, 0.114));',
-    '  col = mix(vec3(l), col, 1.2);',
-    '  col = mix(col, col * vec3(0.8, 0.88, 1.2), (1.0 - smoothstep(0.0, 0.55, l)) * 0.5);',
-    '  col = col * 1.1 + vec3(0.012, 0.01, 0.025);',
-    '  vec2 cc = vUv - 0.5; col *= 1.0 - dot(cc, cc) * 1.05;',
+    // keep a little of the crisp source where the patch is flat, for detail
+    '  vec3 src = texture2D(tDiffuse, uv).rgb;',
+    '  col = mix(col, src, 0.18 * (1.0 - smoothstep(0.0, 0.02, mv)));',
+    // bristle streaks: along the edge where there is one, along a slow field elsewhere
+    '  float fa = noise(vUv * 3.0 + 7.3) * 6.2831;',
+    '  vec2 fd = vec2(cos(fa), sin(fa));',
+    '  vec2 gd = edge > 0.04 ? normalize(vec2(-gy, gx)) : fd;',
+    '  vec2 dir = normalize(mix(fd, gd, smoothstep(0.02, 0.2, edge)));',
+    '  vec2 nrm = vec2(-dir.y, dir.x);',
+    '  float along = dot(q, dir), across = dot(q, nrm);',
+    '  float bristle = noise(vec2(along * 0.045, across * 0.9)) * 0.6 + noise(vec2(along * 0.02, across * 0.35)) * 0.4;',
+    '  float dab = noise(q * 0.07 + 11.0);',
+    '  col *= 0.88 + 0.24 * bristle * strength + 0.12 * (1.0 - strength);',
+    '  col += (dab - 0.5) * 0.035 * strength;',
+    // ink on strong edges, broken like a dry brush
+    '  float ink = smoothstep(0.18, 0.55, edge) * (0.55 + 0.45 * noise(vec2(along * 0.08, across * 0.5)));',
+    '  col = mix(col, col * vec3(0.3, 0.26, 0.32), ink * 0.5 * strength);',
+    // canvas weave and paper tooth
+    '  float weave = abs(sin(q.x * 1.6)) * abs(sin(q.y * 1.6));',
+    '  col *= 0.97 + 0.05 * weave + 0.04 * (noise(q * 0.9) - 0.5);',
+    // grade: saturation, cool shadows, warm lights, lifted blacks
+    '  float l = lum(col);',
+    '  col = mix(vec3(l), col, 1.22);',
+    '  col = mix(col, col * vec3(0.78, 0.88, 1.22), (1.0 - smoothstep(0.0, 0.5, l)) * 0.5);',
+    '  col = mix(col, col * vec3(1.08, 1.0, 0.86), smoothstep(0.5, 1.0, l) * 0.35);',
+    '  col = col * 1.1 + vec3(0.014, 0.011, 0.026);',
+    '  vec2 cc = vUv - 0.5; col *= 1.0 - dot(cc, cc) * 1.1;',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
   ].join('\n');
@@ -376,6 +410,8 @@
     var legL = limb2(0.46 * s, 0.46 * s, 0.075 * s * w, legM), legR = limb2(0.46 * s, 0.46 * s, 0.075 * s * w, legM);
     legL.position.set(-0.1 * s * w, 0, 0); legR.position.set(0.1 * s * w, 0, 0);
     body.add(legL); body.add(legR);
+    var bootM = M(o.boots || 0x141114, { shininess: 30 });
+    [legL, legR].forEach(function (lg) { var bt = box(0.13 * s * w, 0.1 * s, 0.24 * s, bootM); put(lg.userData.lower, bt, 0, -0.45 * s, 0.04 * s); });
     // torso
     var torso = cyl(0.2 * s * w, 0.25 * s * w, 0.62 * s, coatM, 10);
     torso.position.y = 0.31 * s; body.add(torso);
@@ -388,7 +424,14 @@
       dr.position.y = -0.42 * s; body.add(dr);
     }
     if (o.apron) { var ap = box(0.36 * s, 0.7 * s, 0.02, M(o.apron)); ap.position.set(0, -0.05 * s, 0.25 * s * w); body.add(ap); }
-    if (o.scarf) { var sc = cyl(0.13 * s, 0.17 * s, 0.1 * s, M(o.scarf), 8); sc.position.y = 0.64 * s; body.add(sc); }
+    if (o.scarf) {
+      var sc = cyl(0.13 * s, 0.17 * s, 0.1 * s, M(o.scarf), 8); sc.position.y = 0.64 * s; body.add(sc);
+      var tail = box(0.07 * s, 0.3 * s, 0.03 * s, M(o.scarf)); tail.position.set(0.07 * s, 0.48 * s, 0.2 * s * w); tail.rotation.z = 0.15; body.add(tail);
+    } else {
+      var col2 = cyl(0.12 * s, 0.2 * s * w, 0.09 * s, M(o.coat), 8); col2.position.y = 0.62 * s; body.add(col2);
+    }
+    if (o.long && o.pose !== 'lie') { for (var bi = 0; bi < 3; bi++) put(body, sph(0.014 * s, M(0x8a7a5a, { shininess: 60 }), 4), 0, 0.45 * s - bi * 0.14 * s, 0.215 * s * w); }
+    if (o.belt) put(body, cyl(0.235 * s * w, 0.235 * s * w, 0.05 * s, M(o.belt), 10), 0, 0.05 * s, 0);
     // head
     var head = new T.Group(); head.position.y = 0.8 * s; body.add(head);
     put(head, cyl(0.055 * s, 0.065 * s, 0.1 * s, skinM, 6), 0, -0.07 * s, 0);
@@ -401,16 +444,23 @@
       put(head, sph(0.014 * s, eyeM, 5), 0.036 * s, 0.05 * s, 0.093 * s);
       put(head, box(0.02 * s, 0.04 * s, 0.03 * s, skinM), 0, 0.02 * s, 0.105 * s);
     }
+    put(head, box(0.025 * s, 0.035 * s, 0.03 * s, skinM), 0, 0.02 * s, 0.108 * s);
+    put(head, sph(0.022 * s, skinM, 5), -0.1 * s, 0.03 * s, 0); put(head, sph(0.022 * s, skinM, 5), 0.1 * s, 0.03 * s, 0);
+    if (!o.face && o.pose !== 'lie') { var shade = M(0x2a1a18); put(head, box(0.075 * s, 0.012 * s, 0.01 * s, shade), 0, 0.05 * s, 0.1 * s); }
     if (o.beard) { var bd = sph(0.08 * s, M(o.beard), 8); bd.scale.set(1, 1.1, 0.7); put(head, bd, 0, -0.03 * s, 0.05 * s); }
     if (o.hat === 'cap') { put(head, cyl(0.11 * s, 0.11 * s, 0.07 * s, M(o.hatColor || 0x1c1c24), 10), 0, 0.12 * s, 0); put(head, box(0.2 * s, 0.015 * s, 0.1 * s, M(o.hatColor || 0x1c1c24)), 0, 0.09 * s, 0.1 * s); }
     if (o.hat === 'hat') { put(head, cyl(0.2 * s, 0.2 * s, 0.015 * s, M(o.hatColor || 0x141418), 14), 0, 0.1 * s, 0); put(head, cyl(0.1 * s, 0.11 * s, 0.14 * s, M(o.hatColor || 0x141418), 12), 0, 0.17 * s, 0); }
+    if (o.hat === 'fur') { var fh = cyl(0.125 * s, 0.12 * s, 0.13 * s, M(o.hatColor || 0x4a3a2a), 10); put(head, fh, 0, 0.12 * s, 0); put(head, cyl(0.13 * s, 0.13 * s, 0.04 * s, M(0x6a5a44), 10), 0, 0.07 * s, 0); }
     if (o.hat === 'hood') { var hd = sph(0.14 * s, M(o.hatColor || o.coat), 10); hd.scale.set(1, 1.05, 1.1); put(head, hd, 0, 0.05 * s, -0.02 * s); }
     // arms
     var armL = limb2(0.3 * s, 0.28 * s, 0.06 * s * w, coatM), armR = limb2(0.3 * s, 0.28 * s, 0.06 * s * w, coatM);
     armL.position.set(-0.24 * s * w, 0.58 * s, 0); armR.position.set(0.24 * s * w, 0.58 * s, 0);
     body.add(armL); body.add(armR);
-    put(armL.userData.lower, sph(0.05 * s, skinM, 6), 0, -0.3 * s, 0);
-    put(armR.userData.lower, sph(0.05 * s, skinM, 6), 0, -0.3 * s, 0);
+    var handM = o.gloves ? M(o.gloves) : skinM;
+    [armL, armR].forEach(function (ar) {
+      var hd = sph(0.05 * s, handM, 6); hd.scale.set(0.85, 1.2, 0.6); put(ar.userData.lower, hd, 0, -0.31 * s, 0);
+      put(ar.userData.lower, cyl(0.066 * s * w, 0.06 * s * w, 0.05 * s, M(o.cuff || 0x1a1614), 6), 0, -0.26 * s, 0);
+    });
     armL.rotation.z = -0.12; armR.rotation.z = 0.12;
     var p = o.pose;
     if (p === 'walk') { legL.rotation.x = 0.35; legR.rotation.x = -0.3; legR.userData.lower.rotation.x = 0.3; armL.rotation.x = -0.3; armR.rotation.x = 0.3; }
@@ -432,13 +482,34 @@
   function people(X, list) { list.forEach(function (d) { var p = person(d); put(X.s, p, d.x, d.y || 0, d.z, d.ry || 0); }); }
 
   // ---------------------------------------------------------------- buildings & objects
-  var HUT_COLS = [0x2b2326, 0x3c2622, 0x28303c, 0x33302a, 0x402a2e, 0x2c3530, 0x4a3a2a];
+  var HUT_COLS = [0x2b2326, 0x3c2622, 0x28303c, 0x33302a, 0x402a2e, 0x2c3530, 0x4a3a2a, 0x3a2c38, 0x2a3a3a];
+  function hex(c) { return '#' + ('000000' + c.toString(16)).slice(-6); }
+  function hutWallMat(col) {
+    var key = 'hw' + col;
+    if (matCache[key]) return matCache[key];
+    var t = planksTex('hutwall' + col, hex(col), true);
+    t.repeat.set(1.5, 1);
+    var m = new T.MeshPhongMaterial({ map: t, shininess: 5, flatShading: true });
+    m.userData.cached = true;
+    return (matCache[key] = m);
+  }
+  function icicles(g, x0, x1, y, z, n) {
+    var im = M(0xcfe6f2, { shininess: 90, specular: 0xffffff, emissive: 0x1a2a34 });
+    for (var i = 0; i < n; i++) {
+      var ic = mesh(new T.ConeGeometry(0.03, rr(0.1, 0.35), 4), im);
+      ic.rotation.x = Math.PI;
+      put(g, ic, rr(x0, x1), y - 0.08, z);
+    }
+  }
   function hut(X, x, z, ry, o) {
     o = o || {};
     var w = o.w || rr(2.4, 3.6), h = o.h || rr(1.8, 2.3), d = o.d || rr(2.2, 3.2);
     var g = new T.Group();
     var col = o.color || pick(HUT_COLS);
-    put(g, box(w, h, d, M(col)), 0, h / 2 + 0.15, 0);
+    put(g, box(w, h, d, o.plain ? M(col) : hutWallMat(col)), 0, h / 2 + 0.15, 0);
+    // corner posts and a sill
+    var trim = M(0x1e1814);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { put(g, box(0.1, h, 0.1, trim), c[0] * w / 2, h / 2 + 0.15, c[1] * d / 2); });
     var roofH = o.roofH || 0.85, top = h + 0.15, hw = (w * 1.12) / 2;
     var roof = mesh(new T.CylinderGeometry(1, 1, 1, 3), M(o.roof || 0x1c1a1e));
     roof.rotation.x = -Math.PI / 2;
@@ -446,23 +517,177 @@
     roof.position.y = top + 0.5 * roofH / 1.5;
     g.add(roof);
     var slope = Math.atan2(roofH, hw), L = Math.sqrt(hw * hw + roofH * roofH), snowM = M(0xd8dde8);
-    var sR = box(L * 1.02, 0.07, d * 1.1, snowM); sR.position.set(hw / 2, top + roofH / 2 + 0.05, 0); sR.rotation.z = -slope; g.add(sR);
-    var sL = box(L * 1.02, 0.07, d * 1.1, snowM); sL.position.set(-hw / 2, top + roofH / 2 + 0.05, 0); sL.rotation.z = slope; g.add(sL);
+    var sR = box(L * 1.02, 0.09, d * 1.1, snowM); sR.position.set(hw / 2, top + roofH / 2 + 0.05, 0); sR.rotation.z = -slope; g.add(sR);
+    var sL = box(L * 1.02, 0.09, d * 1.1, snowM); sL.position.set(-hw / 2, top + roofH / 2 + 0.05, 0); sL.rotation.z = slope; g.add(sL);
+    if (o.icicles !== false) icicles(g, -w / 2, w / 2, top, d / 2 + 0.08, 5 + ((R() * 6) | 0));
+    var wx = rr(-w / 4, w / 4) + w / 8;
     if (o.lit !== false && R() < (o.litChance || 0.8)) {
       var wc = o.lightColor || 0xffc46e;
-      put(g, plane(0.5, 0.45, E(wc)), rr(-w / 4, w / 4), h * 0.6, d / 2 + 0.01);
-      glow(g, 0, h * 0.6, d / 2 + 0.3, 2.2, wc, 0.35);
+      put(g, plane(0.5, 0.45, E(wc)), wx, h * 0.6, d / 2 + 0.01);
+      // frame and mullions
+      put(g, box(0.6, 0.05, 0.05, trim), wx, h * 0.6 + 0.25, d / 2 + 0.03);
+      put(g, box(0.6, 0.05, 0.05, trim), wx, h * 0.6 - 0.25, d / 2 + 0.03);
+      put(g, box(0.04, 0.5, 0.04, trim), wx, h * 0.6, d / 2 + 0.03);
+      put(g, box(0.5, 0.03, 0.04, trim), wx, h * 0.6, d / 2 + 0.03);
+      if (R() < 0.5) put(g, plane(0.2, 0.45, M(pick([0x8a2a2a, 0x2a4a6a, 0x6a5a2a]))), wx - 0.16, h * 0.6, d / 2 + 0.02);
+      glow(g, wx, h * 0.6, d / 2 + 0.3, 2.2, wc, 0.35);
+    } else {
+      put(g, plane(0.5, 0.45, M(0x0c0c12)), wx, h * 0.6, d / 2 + 0.01);
     }
+    // door with frame and a handle
     put(g, plane(0.6, 1.2, M(0x151215)), -w / 3, 0.75, d / 2 + 0.012);
+    put(g, box(0.72, 0.06, 0.05, trim), -w / 3, 1.36, d / 2 + 0.03);
+    put(g, sph(0.03, M(0x8a7a50, { shininess: 60 }), 5), -w / 3 + 0.2, 0.75, d / 2 + 0.05);
     if (o.pipe !== false && R() < 0.75) {
       var px = w / 4, pz = -d / 4;
       put(g, cyl(0.07, 0.07, 0.9, M(0x1c1c1c), 6), px, h + 0.7, pz);
+      put(g, cyl(0.13, 0.07, 0.08, M(0x1c1c1c), 6), px, h + 1.18, pz);
       if (o.smoke !== false) smoke(X, x + px, h + 1.2, z + pz, { n: 5, size: 1, rise: 3.5, opacity: 0.25 });
     }
+    // runners and a drift against the wall
     put(g, box(0.08, 0.1, d * 1.1, M(0x3a3028)), -w / 2 + 0.2, 0.05, 0);
     put(g, box(0.08, 0.1, d * 1.1, M(0x3a3028)), w / 2 - 0.2, 0.05, 0);
+    var dr = sph(1, snowM, 8); dr.scale.set(w * 0.35, 0.28, 0.5); put(g, dr, rr(-w / 4, w / 4), 0, -d / 2 - 0.1);
     put(X.s, g, x, 0, z, ry || 0);
+    if (o.props !== false && R() < 0.7) {
+      var ca = Math.cos(ry || 0), sa = Math.sin(ry || 0);
+      var lx = w / 2 + 0.45, lz = rr(-d / 3, d / 3);
+      var px2 = x + lx * ca + lz * sa, pz2 = z - lx * sa + lz * ca;
+      pick([barrel, crates, woodpile, sledge, skis])(X, px2, pz2, rr(0, 6));
+    }
     return g;
+  }
+
+  function stripesTex(a, b) {
+    return canvasTex('stripe' + a + b, 128, 64, function (g, w, h) {
+      for (var i = 0; i < 8; i++) { g.fillStyle = i % 2 ? a : b; g.fillRect(i * 16, 0, 16, h); }
+      g.fillStyle = 'rgba(0,0,0,0.18)'; for (var k = 0; k < 200; k++) g.fillRect(Math.random() * w, Math.random() * h, 1, 1 + Math.random() * 3);
+    }, true);
+  }
+  // A market stall: striped awning, counter, goods, a vendor and a lamp.
+  function stall(X, x, z, ry, o) {
+    o = o || {};
+    var g = new T.Group(), wood = M(0x4a3424);
+    var cols = pick([['#8a2a2a', '#e0d4bc'], ['#2a4a6a', '#e0d4bc'], ['#2a5a3a', '#d8c898'], ['#6a3a1a', '#e8c878']]);
+    put(g, box(2, 0.9, 0.7, wood), 0, 0.45, 0);
+    put(g, box(2.1, 0.05, 0.8, M(0x6a4a30)), 0, 0.92, 0);
+    [[-0.95, -0.3], [0.95, -0.3], [-0.95, 0.35], [0.95, 0.35]].forEach(function (c) { put(g, box(0.06, 2.2, 0.06, wood), c[0], 1.1, c[1]); });
+    var aw = plane(2.3, 1.1, new T.MeshPhongMaterial({ map: stripesTex(cols[0], cols[1]), side: T.DoubleSide, shininess: 4 }));
+    aw.rotation.x = -Math.PI / 2 + 0.35; put(g, aw, 0, 2.15, 0.25);
+    put(g, box(2.3, 0.08, 1.1, M(0xd8dde8)), 0, 2.3, 0.1).rotation.x = 0.35;
+    var goods = o.goods || pick(['jars', 'fish', 'bread', 'lamps']);
+    for (var i = 0; i < 7; i++) {
+      var gx = -0.8 + i * 0.27, it;
+      if (goods === 'jars') it = cyl(0.07, 0.07, 0.18, M(pick([0xc8802a, 0x8a2a2a, 0xd0b060]), { shininess: 70 }), 8);
+      else if (goods === 'fish') { it = box(0.24, 0.05, 0.08, M(0x9a9aa0, { shininess: 60 })); }
+      else if (goods === 'bread') { it = sph(0.1, M(0xb07a3a), 7); it.scale.set(1.3, 0.7, 1); }
+      else it = box(0.1, 0.16, 0.1, E(pick([0xffc870, 0xff9a5a, 0xf0e0a0])));
+      put(g, it, gx, 1.02, rr(-0.15, 0.15));
+    }
+    lamp(X, x, 1.95, z, 0xffc070, 0.8, 6, { glow: 1.4, light: o.light !== false });
+    var v = person({ h: rr(1.55, 1.75), coat: pick(COAT_COLS), pose: 'hands', apron: 0xd8d0c0, scarf: pick(SCARF_COLS), hat: pick(['hood', 'fur', 'cap']), long: false, face: true });
+    put(g, v, 0, 0, -0.75, 0);
+    put(X.s, g, x, 0, z, ry || 0);
+    // the lamp was placed in world space: move it with the stall's facing
+    return g;
+  }
+
+  // ---------------------------------------------------------------- props
+  function barrel(X, x, z, ry) {
+    var g = new T.Group();
+    put(g, cyl(0.28, 0.25, 0.75, M(0x4a3222), 10), 0, 0.38, 0);
+    [0.12, 0.64].forEach(function (y) { put(g, cyl(0.285, 0.285, 0.04, M(0x2a2420, { shininess: 30 }), 10), 0, y, 0); });
+    put(g, cyl(0.26, 0.26, 0.04, M(0xdde2ec), 10), 0, 0.77, 0);
+    put(X.s, g, x, 0, z, ry);
+    return g;
+  }
+  function crates(X, x, z, ry) {
+    var g = new T.Group(), n = 1 + ((R() * 3) | 0);
+    var t = planksTex('crate', '#6a5034', false);
+    for (var i = 0; i < n; i++) {
+      var s = rr(0.4, 0.6);
+      var c = box(s, s, s, new T.MeshPhongMaterial({ map: t, shininess: 4 }));
+      put(g, c, rr(-0.2, 0.2), s / 2 + (i === 2 ? 0.5 : 0), i === 1 ? 0.55 : 0, rr(-0.3, 0.3));
+    }
+    put(X.s, g, x, 0, z, ry);
+    return g;
+  }
+  function woodpile(X, x, z, ry) {
+    var g = new T.Group(), m = M(0x5a3e28);
+    for (var r = 0; r < 4; r++) for (var i = 0; i < 5 - r; i++) {
+      var l = cyl(0.08, 0.08, 0.9, m, 6); l.rotation.x = Math.PI / 2;
+      put(g, l, (i - (4 - r) / 2) * 0.17, 0.08 + r * 0.15, 0);
+    }
+    var cap = box(0.95, 0.06, 1, M(0xdde2ec)); put(g, cap, 0, 0.66, 0);
+    put(X.s, g, x, 0, z, ry);
+    return g;
+  }
+  function sledge(X, x, z, ry, o) {
+    o = o || {};
+    var g = new T.Group(), w = M(o.color || 0x6a4a2a);
+    put(g, box(0.7, 0.06, 1.5, w), 0, 0.32, 0);
+    [-0.3, 0.3].forEach(function (sx) {
+      put(g, box(0.05, 0.05, 1.7, M(0x3a3a40, { shininess: 60 })), sx, 0.04, 0.05);
+      var tip = mesh(new T.TorusGeometry(0.16, 0.025, 4, 8, Math.PI / 2), M(0x3a3a40)); tip.rotation.y = Math.PI / 2; put(g, tip, sx, 0.2, 0.9);
+      [-0.5, 0, 0.5].forEach(function (zz) { put(g, box(0.04, 0.28, 0.04, w), sx, 0.18, zz); });
+    });
+    if (o.load !== false && R() < 0.6) put(g, box(0.55, 0.3, 0.8, M(pick([0x5a5a4a, 0x4a3a2a, 0x3a4a5a]))), 0, 0.5, -0.2);
+    put(X.s, g, x, 0, z, ry);
+    return g;
+  }
+  function skis(X, x, z, ry) {
+    var g = new T.Group();
+    [-0.08, 0.08].forEach(function (sx, i) { var k = box(0.07, 1.8, 0.02, M(i ? 0x7a5a3a : 0x6a4a2a)); put(g, k, sx, 0.9, 0).rotation.x = -0.12; });
+    put(X.s, g, x, 0, z, ry);
+    return g;
+  }
+  function snowbank(X, x, z, r, o) {
+    var m = sph(1, M(0xd6dce8), 9); m.scale.set(r, (o && o.h) || r * 0.3, r * 0.7); put(X.s, m, x, 0, z, rr(0, 6));
+    return m;
+  }
+  function fishHole(X, x, z, o) {
+    o = o || {};
+    var h = cyl(0.3, 0.3, 0.02, new T.MeshPhongMaterial({ color: 0x04080c, shininess: 120, specular: 0x6a8aa0 }), 12); put(X.s, h, x, 0.01, z);
+    put(X.s, mesh(new T.TorusGeometry(0.34, 0.06, 5, 14), M(0xc8d4e2)), x, 0.03, z).rotation.x = Math.PI / 2;
+    if (o.flag !== false) {
+      put(X.s, cyl(0.012, 0.012, 1, M(0x5a4030), 4), x + 0.4, 0.5, z);
+      put(X.s, plane(0.25, 0.16, M(o.color || 0xc03030, { side: T.DoubleSide })), x + 0.53, 0.9, z);
+    }
+  }
+  function dryingRack(X, x, z, ry) {
+    var g = new T.Group(), w = M(0x4a3a2a);
+    put(g, box(0.05, 1.6, 0.05, w), -0.8, 0.8, 0); put(g, box(0.05, 1.6, 0.05, w), 0.8, 0.8, 0);
+    put(g, box(1.7, 0.04, 0.04, w), 0, 1.55, 0);
+    for (var i = 0; i < 7; i++) { var f = box(0.08, 0.36, 0.02, M(pick([0x8a8a90, 0xa09a88, 0x6a6a72]), { shininess: 50 })); put(g, f, -0.7 + i * 0.23, 1.3, 0); }
+    put(X.s, g, x, 0, z, ry);
+  }
+  // a trampled path through the snow
+  function path(X, pts, w, color) {
+    var m = new T.MeshPhongMaterial({ color: color || 0x6a7088, shininess: 20, map: speckTex('trodden', '#8a90a8', 0.4, 2000, 4), transparent: true, opacity: 0.7, depthWrite: false });
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = pts[i], b = pts[i + 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      var p = plane(w, len + w * 0.5, m); p.rotation.x = -Math.PI / 2; p.rotation.z = -Math.atan2(b[0] - a[0], b[1] - a[1]);
+      p.position.set((a[0] + b[0]) / 2, 0.015, (a[1] + b[1]) / 2); X.s.add(p);
+    }
+  }
+  var COAT_COLS = [0x2b2a31, 0x3a2a2a, 0x262e3a, 0x3a3226, 0x4a2a24, 0x2a3a34, 0x5a4a3a, 0x1e1e26, 0x6a3a2a, 0x3a3a4a];
+  var SCARF_COLS = [0x8a1a1a, 0xc8a040, 0x2a4a8a, 0xe0d8c8, 0x6a2a5a, 0x2a6a4a, null, null];
+  // A crowd of the Glass: walkers, talkers, children, someone with a lantern.
+  function crowd(X, n, x0, x1, z0, z1, o) {
+    o = o || {};
+    for (var i = 0; i < n; i++) {
+      var child = R() < 0.15;
+      var d = { x: rr(x0, x1), z: rr(z0, z1), h: child ? rr(1.05, 1.35) : rr(1.55, 1.9), coat: pick(o.coats || COAT_COLS), pose: pick(['walk', 'walk', 'stand', 'stand', 'hands']), ry: rr(0, 6.28),
+        hat: pick([null, 'cap', 'hat', 'hood', 'fur', null]), scarf: pick(SCARF_COLS), hair: pick([0x3a2c24, 0x1a1410, 0x8a6a4a, 0x9a9a9a, 0x5a3a20]), long: R() < 0.7, face: true };
+      if (R() < 0.3) d.skirt = pick([0x4a2a3a, 0x2a2a3a, 0x5a3a2a]);
+      var p = person(d); put(X.s, p, d.x, 0, d.z, d.ry);
+      if (!child && R() < (o.lanterns || 0.12)) { var hand = new T.Vector3(); p.updateMatrixWorld(true); p.userData.parts.armR.userData.lower.getWorldPosition(hand); lamp(X, hand.x, hand.y - 0.35, hand.z, 0xffb45a, 0.5, 4, { glow: 0.9 }); }
+      if (!child && R() < 0.25) {
+        // a companion, facing them
+        var e = Object.assign({}, d, { x: d.x + Math.sin(d.ry) * 0.7, z: d.z + Math.cos(d.ry) * 0.7, ry: d.ry + Math.PI, coat: pick(COAT_COLS), hat: pick([null, 'cap', 'hood', 'fur']), pose: 'stand', h: rr(1.55, 1.85) });
+        put(X.s, person(e), e.x, 0, e.z, e.ry);
+      }
+    }
   }
 
   function pavilion(X, x, z, o) {
@@ -584,6 +809,29 @@
     });
     var th = cyl(0.01 * s, 0.009 * s, 0.06 * s, mat, 5);
     put(g, th, 0.055 * s, 0.01 * s, 0).rotation.z = -0.9;
+    return g;
+  }
+
+  // A better hand: a rounded palm, jointed fingers that can curl, a thumb.
+  function hand2(mat, s, curl, spread) {
+    curl = curl || 0; spread = spread == null ? 0.12 : spread;
+    var g = new T.Group();
+    var palm = sph(0.05 * s, mat, 12); palm.scale.set(1.0, 1.1, 0.42); put(g, palm, 0, 0, 0);
+    var lens = [0.078, 0.09, 0.085, 0.068];
+    [-0.033, -0.011, 0.011, 0.032].forEach(function (fx, i) {
+      var root = new T.Group(); root.position.set(fx * s, 0.05 * s, 0); root.rotation.z = -fx * spread * 30; g.add(root);
+      var segs = [lens[i] * 0.5, lens[i] * 0.3, lens[i] * 0.25], r = 0.0105 * s * (i === 3 ? 0.85 : 1), parent = root;
+      segs.forEach(function (L, k) {
+        var j = new T.Group(); parent.add(j); j.rotation.x = curl * (k === 0 ? 0.9 : 1.1);
+        put(j, sph(r * 1.05, mat, 6), 0, 0, 0);
+        put(j, cyl(r, r * 0.92, L * s, mat, 6), 0, L * s / 2, 0);
+        var nxt = new T.Group(); nxt.position.y = L * s; j.add(nxt); parent = nxt;
+        if (k === 2) put(nxt, sph(r * 0.95, mat, 6), 0, 0, 0);
+      });
+    });
+    var th = new T.Group(); th.position.set(0.045 * s, -0.01 * s, 0.01 * s); th.rotation.z = -0.9 + curl * 0.5; th.rotation.x = curl * 0.6; g.add(th);
+    put(th, sph(0.014 * s, mat, 6), 0, 0, 0); put(th, cyl(0.013 * s, 0.011 * s, 0.055 * s, mat, 6), 0, 0.028 * s, 0); put(th, sph(0.011 * s, mat, 6), 0, 0.055 * s, 0);
+    put(g, cyl(0.03 * s, 0.035 * s, 0.06 * s, mat, 8), 0, -0.07 * s, 0);
     return g;
   }
 
@@ -864,14 +1112,14 @@
       for (var j = 0; j < 300; j++) { g.fillStyle = 'rgba(230,245,255,' + Math.random() * 0.5 + ')'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, Math.random() * 2.5, 0, 7); g.fill(); }
     }, true);
     scratch.repeat.set(3, 3);
-    var iceM = new T.MeshPhongMaterial({ color: 0x3a5664, transparent: true, opacity: 0.38, shininess: 90, specular: 0x8a7a60, map: scratch });
+    var iceM = new T.MeshPhongMaterial({ color: 0x3a5664, transparent: true, opacity: 0.38, shininess: 30, specular: 0x2a2620, map: scratch });
     var ice = plane(30, 30, iceM); ice.rotation.x = -Math.PI / 2; X.s.add(ice);
     // bubbles in the ice
     var bp = [];
     for (var b = 0; b < 120; b++) bp.push(new T.Vector3(rr(-4, 4), rr(-0.3, -0.05), rr(-3, 3)));
     X.s.add(new T.Points(new T.BufferGeometry().setFromPoints(bp), new T.PointsMaterial({ size: 0.05, color: 0xd8f0f8, transparent: true, opacity: 0.6 })));
     // lanterns ring
-    [[-3.2, -2.4], [3.2, -2.4], [-3.4, 2.6], [3.4, 2.6], [0, -3.6], [0.2, 3.8]].forEach(function (p, i) { lanternPole(X, p[0], p[1], 1.6, i < 4); reflect(X, p[0], p[1], 0.6, 1.4, 0xffb060, { opacity: 0.35 }); });
+    [[-3.2, -2.4], [3.2, -2.4], [-3.6, 1.4], [3.6, 1.4], [0, -3.6]].forEach(function (p, i) { lanternPole(X, p[0], p[1], 1.6, i < 4); });
     // crowd legs at the edge, the Chandelier steps at the top
     for (var c = 0; c < 10; c++) {
       var a2 = (c / 10) * Math.PI * 2;
@@ -889,18 +1137,31 @@
     lights(X, { sky: 0x4a5a8a, ground: 0x1a1420, hemi: 0.5, dirI: 0.25, fog: act3 ? 0x2a2a3a : 0x1c1a32, fogD: 0.018 });
     ground(X, 300, act3 ? 0x5a6478 : 0x8a96b4, { shine: act3 ? 80 : 14, specular: act3 ? 0x8a9ab0 : 0x222233, map: speckTex('snowgrain', '#c8d0e0', 0.2, 1200, 2) });
     pavilion(X, 0, -18, { big: true });
-    for (var i = 0; i < 44; i++) {
-      var x = rr(-40, 40), z = rr(-45, 6);
+    city(X, -40, -230, { n: 120, spread: 70, hill: 30, lit: 0.4 });
+    for (var i = 0; i < 52; i++) {
+      var x = rr(-40, 40), z = rr(-45, 8);
       if (Math.abs(x) < 12 && z < -8 && z > -30) continue;
+      if (Math.abs(x) < 4.5 && z > -9) continue;
       hut(X, x, z, rr(-0.4, 0.4) + (R() < 0.5 ? Math.PI / 2 : 0), {});
     }
+    // the main lane up to the Chandelier's steps
+    path(X, [[0, 16], [0.8, 6], [-0.5, -4], [0, -10.5]], 4.2);
+    path(X, [[-3, 2], [-14, 0], [-24, 3]], 2.2);
+    path(X, [[3, -1], [13, -4], [26, -2]], 2.2);
+    stall(X, -3.4, 4.5, 0.25, { goods: 'fish' });
+    stall(X, 3.6, 1.5, -0.3, { goods: 'jars' });
+    stall(X, -3.6, -3, 0.2, { goods: 'lamps', light: false });
+    for (var lp = 0; lp < 5; lp++) { lanternPole(X, -2.4, 10 - lp * 4, 2.6, lp % 2 === 0); lanternPole(X, 2.4, 9 - lp * 4, 2.6, false); }
+    sledge(X, 1.6, 7, 0.4, {}); barrel(X, -2.1, 8.2, 0); crates(X, 2.2, -2.5, 0.5);
+    snowbank(X, -5, 12, 1.8); snowbank(X, 5.5, 13, 2.2); snowbank(X, 9, 4, 1.4);
+    crowd(X, 26, -3, 3, -9, 12, { lanterns: 0.15 });
+    crowd(X, 10, -16, -5, -2, 4, {});
+    crowd(X, 10, 5, 16, -5, 2, {});
     lanternString(X, new T.Vector3(-14, 4.5, -4), new T.Vector3(-2, 4.5, -10), 1, 12, [0xffcf7a, 0xff9a6a, 0xf4e0a0]);
     lanternString(X, new T.Vector3(2, 4.5, -10), new T.Vector3(16, 4.5, -3), 1, 12, [0xffcf7a, 0xff9a6a, 0xf4e0a0]);
     lanternString(X, new T.Vector3(-20, 4, -20), new T.Vector3(-10, 5, -12), 0.8, 10, [0xffcf7a, 0xf4e0a0]);
     lamp(X, -6, 3, -2, 0xffb060, 1, 14, { glow: 2 });
     lamp(X, 7, 3, 0, 0xffb060, 1, 14, { glow: 2 });
-    var cols = [0x2b2a31, 0x3a2a2a, 0x262e3a, 0x3a3226];
-    for (var p = 0; p < 12; p++) people(X, [{ x: rr(-10, 10), z: rr(-6, 6), h: rr(1.55, 1.85), coat: pick(cols), pose: R() < 0.6 ? 'walk' : 'stand', ry: rr(0, 6), hat: pick([null, 'cap', 'hat', 'hood']) }]);
     if (!act3) snow(X, 700, [-20, 20, 0, 14, -30, 14], { size: 0.08 });
     cam(X, 2, 9, 22, 0, 2.5, -14, 50, 0.2);
   };
@@ -1492,7 +1753,549 @@
     cam(X, -0.6, 1.25, 2.1, 0.1, 1.2, -1.6, 60, 0.04);
   };
 
-  api.scenes = Object.keys(SCENES);
+  // ---------------------------------------------------------------- close-ups (semi-décors)
+  // Held for the length of a passage: an object, a hand, a page.
+  function vig(X, o) {
+    X.s.background = new T.Color(o.bg || 0x07080c);
+    X.s.add(new T.HemisphereLight(o.sky || 0x5a5a7a, o.ground || 0x0a0808, o.hemi == null ? 0.35 : o.hemi));
+    if (o.fog) X.s.fog = new T.FogExp2(o.fog, o.fogD || 0.08);
+  }
+  function scrawlTex(key, o) {
+    o = o || {};
+    return canvasTex(key, o.w || 512, o.h || 512, function (g, w, h) {
+      g.fillStyle = o.paper || '#e6dcc4'; g.fillRect(0, 0, w, h);
+      for (var k = 0; k < 900; k++) { g.fillStyle = 'rgba(90,60,20,' + Math.random() * 0.05 + ')'; g.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 6, 1 + Math.random() * 3); }
+      if (o.rule) { g.strokeStyle = 'rgba(80,110,150,0.25)'; for (var y = 60; y < h; y += 26) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } }
+      g.fillStyle = o.ink || '#1e1a2a';
+      var y0 = o.top || 70;
+      if (o.head) { g.font = 'bold ' + (o.headSize || 30) + 'px Georgia, serif'; g.textAlign = 'left'; g.fillText(o.head, 36, y0); y0 += 44; }
+      g.strokeStyle = o.ink || '#1e1a2a'; g.lineWidth = o.lw || 2;
+      (o.lines || []).forEach(function (ln) {
+        if (typeof ln === 'string') { g.font = 'italic ' + (o.size || 22) + 'px Georgia, serif'; g.fillText(ln, 36, y0); y0 += 26; return; }
+      });
+      for (var l = 0; l < (o.scribble || 0); l++) {
+        var x = 36, yy = y0 + l * 26; if (yy > h - 30) break;
+        var end = w - 40 - Math.random() * (l % 5 === 4 ? w * 0.5 : 60);
+        g.beginPath(); g.moveTo(x, yy);
+        while (x < end) { var st = 6 + Math.random() * 10; g.quadraticCurveTo(x + st / 2, yy - 8 - Math.random() * 6, x + st, yy + (Math.random() - 0.5) * 3); x += st; if (Math.random() < 0.12) { x += 8; g.moveTo(x, yy); } }
+        g.stroke();
+      }
+      if (o.draw) o.draw(g, w, h);
+    });
+  }
+  function paperSheet(X, tex, w, h, x, y, z, rx, rz) {
+    var geo = new T.PlaneGeometry(w, h, 8, 8), p = geo.attributes.position;
+    for (var i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) * 3.1) * 0.006 + Math.cos(p.getY(i) * 2.3) * 0.005);
+    geo.computeVertexNormals();
+    var m = mesh(geo, new T.MeshPhongMaterial({ map: tex, shininess: 6, side: T.DoubleSide }));
+    m.rotation.x = rx == null ? -Math.PI / 2 : rx; m.rotation.z = rz || 0;
+    put(X.s, m, x, y, z);
+    return m;
+  }
+  function iceSheetTex() {
+    return canvasTex('icecracks', 512, 512, function (g, w, h) {
+      g.fillStyle = '#35505e'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(220,240,250,0.35)'; g.lineWidth = 1;
+      for (var i = 0; i < 40; i++) { g.beginPath(); var x0 = Math.random() * w, y0 = Math.random() * h; g.moveTo(x0, y0); for (var k = 0; k < 5; k++) { x0 += (Math.random() - 0.5) * 80; y0 += (Math.random() - 0.5) * 80; g.lineTo(x0, y0); } g.stroke(); }
+      for (var j = 0; j < 300; j++) { g.fillStyle = 'rgba(230,245,255,' + Math.random() * 0.5 + ')'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, Math.random() * 2.5, 0, 7); g.fill(); }
+    }, true);
+  }
+  function woodTable(X, w, d, color) {
+    var t = planksTex('vigtable' + (color || ''), color || '#4a3222', false); t.repeat.set(1.5, 1.5);
+    var tb = plane(w, d, new T.MeshPhongMaterial({ map: t, shininess: 14 })); tb.rotation.x = -Math.PI / 2; X.s.add(tb);
+    return tb;
+  }
+  function fingersCurled(mat, s) {
+    // a closed fist: palm block and four curled fingers, a thumb across
+    var g = new T.Group();
+    put(g, box(0.09 * s, 0.1 * s, 0.05 * s, mat), 0, 0, 0);
+    for (var i = 0; i < 4; i++) { var f = cyl(0.011 * s, 0.011 * s, 0.05 * s, mat, 6); f.rotation.z = Math.PI / 2; put(g, f, 0, 0.035 * s - i * 0.022 * s, 0.035 * s); }
+    var th = cyl(0.012 * s, 0.011 * s, 0.06 * s, mat, 6); th.rotation.x = Math.PI / 2; th.rotation.z = 0.5; put(g, th, 0.03 * s, 0.03 * s, 0.03 * s);
+    return g;
+  }
+
+  SCENES.v_hand = function (X) {
+    vig(X, { bg: 0x03060a, sky: 0x5a7a9a, hemi: 0.35 });
+    var top = new T.PointLight(0xffd8a0, 0.9, 5, 1.5); top.position.set(0.6, 1.4, 0.6); X.s.add(top);
+    var cold = new T.PointLight(0x5a9ac0, 0.9, 3, 1.2); cold.position.set(0, -0.8, 0); X.s.add(cold);
+    put(X.s, plane(8, 8, M(0x02050a)), 0, -1.2, 0).rotation.x = -Math.PI / 2;
+    var tex = iceSheetTex(); tex.repeat.set(1.2, 1.2);
+    var ice = plane(6, 6, new T.MeshPhongMaterial({ color: 0x4a6878, transparent: true, opacity: 0.42, shininess: 100, specular: 0xb0a080, map: tex, depthWrite: false }));
+    ice.rotation.x = -Math.PI / 2; X.s.add(ice);
+    var skin = M(0xa8a4a8, { emissive: 0x10161e });
+    var hand = hand2(skin, 4, 0.05, 0.25); hand.rotation.x = -Math.PI / 2; hand.rotation.z = 0.25; put(X.s, hand, 0, -0.07, 0);
+    var sleeve = cyl(0.15, 0.16, 1.4, M(0x2e2a26), 8); sleeve.rotation.x = 0.9; put(X.s, sleeve, -0.08, -0.55, -0.62);
+    // split knuckles
+    [[-0.07, 0.19], [-0.02, 0.21]].forEach(function (k) { put(X.s, box(0.03, 0.01, 0.012, E(0x5a1a1a)), k[0], -0.02, -k[1] + 0.12); });
+    for (var b = 0; b < 40; b++) put(X.s, sph(rr(0.005, 0.02), M(0xdfeaf2, { emissive: 0x2a3a44 }), 5), rr(-1, 1), rr(-0.04, 0.02), rr(-1, 1));
+    glow(X.s, 0.9, 0.3, -0.6, 0.9, 0xffc890, 0.25);
+    snow(X, 60, [-1, 1, -0.9, -0.05, -1, 1], { up: true, size: 0.02, color: 0xa8c8e0, opacity: 0.5, speed: 0.1 });
+    cam(X, 0.15, 1.05, 0.55, 0, -0.08, -0.02, 50, 0.02);
+  };
+
+  SCENES.v_fist = function (X) {
+    vig(X, { bg: 0x0a0806, sky: 0x8a6a4a, hemi: 0.3 });
+    var L = new T.PointLight(0xffc880, 0.8, 4, 1.5); L.position.set(0.7, 0.9, 0.5); X.s.add(L);
+    var sheet = plane(3, 3, M(0xb8b0a0, { shininess: 4 })); sheet.rotation.x = -Math.PI / 2; X.s.add(sheet);
+    for (var f = 0; f < 6; f++) { var fold = box(3, 0.02, 0.05, M(0xd8d0c0)); put(X.s, fold, 0, 0.005, -1 + f * 0.4).rotation.y = rr(-0.1, 0.1); }
+    var skin = M(0xb8b4b4, { emissive: 0x12161c });
+    var fist = hand2(skin, 3.6, 1.25, 0.02); fist.rotation.set(-Math.PI / 2, 0, 1.2); put(X.s, fist, 0, 0.1, 0);
+    var wrist = cyl(0.11, 0.13, 0.9, M(0x2e2a26), 8); wrist.rotation.z = Math.PI / 2 - 0.4; wrist.rotation.y = 0.3; put(X.s, wrist, -0.52, 0.12, -0.2);
+    // the grey rotten ice, crumbling out between the fingers
+    var rot = new T.MeshPhongMaterial({ color: 0x8a949a, transparent: true, opacity: 0.85, shininess: 30, emissive: 0x1a1e22 });
+    var lump = mesh(new T.IcosahedronGeometry(0.13, 1), rot);
+    var lp = lump.geometry.attributes.position; for (var i = 0; i < lp.count; i++) { var k = 0.75 + R() * 0.45; lp.setXYZ(i, lp.getX(i) * k, lp.getY(i) * k, lp.getZ(i) * k); } lump.geometry.computeVertexNormals();
+    put(X.s, lump, 0.12, 0.2, 0.08);
+    for (var c = 0; c < 18; c++) put(X.s, mesh(new T.TetrahedronGeometry(rr(0.01, 0.035)), rot), 0.15 + rr(-0.2, 0.25), 0.01, 0.1 + rr(-0.15, 0.2));
+    put(X.s, plane(0.5, 0.3, new T.MeshPhongMaterial({ color: 0x6a7a8a, transparent: true, opacity: 0.35, shininess: 100 })), 0.2, 0.003, 0.2).rotation.x = -Math.PI / 2;
+    cam(X, 0.55, 0.75, 0.75, 0.05, 0.1, 0.02, 48, 0.02);
+  };
+
+  SCENES.v_rope = function (X) {
+    vig(X, { bg: 0x06080e, sky: 0x6a7a9a, hemi: 0.4, fog: 0x0a0c14, fogD: 0.12 });
+    var L = new T.PointLight(0xffc070, 0.9, 5, 1.5); L.position.set(-0.6, 1, 0.3); X.s.add(L);
+    ground(X, 12, 0x7a8498, { shine: 30, map: speckTex('snowgrain', '#c8d0e0', 0.2, 1200, 2) });
+    var curve = new T.CatmullRomCurve3([new T.Vector3(-2.5, 0.04, -2.2), new T.Vector3(-1.2, 0.04, -0.9), new T.Vector3(-0.8, 0.04, 0.1), new T.Vector3(-0.1, 0.05, 0.25), new T.Vector3(0.35, 0.05, 0.05)]);
+    var rope = mesh(new T.TubeGeometry(curve, 60, 0.035, 7), M(0x9a7a44));
+    X.s.add(rope);
+    // twist marks along it
+    for (var i = 0; i < 60; i++) { var pt = curve.getPoint(i / 60); put(X.s, mesh(new T.TorusGeometry(0.036, 0.006, 3, 8), M(0x6a5028)), pt.x, pt.y, pt.z).rotation.y = i; }
+    // the clean cut face
+    var end = cyl(0.036, 0.036, 0.01, M(0xc8a870), 10); end.rotation.z = Math.PI / 2; put(X.s, end, 0.36, 0.05, 0.05);
+    // the knife
+    var kn = new T.Group(); put(kn, box(0.3, 0.012, 0.045, M(0xc0c4cc, { shininess: 120, specular: 0xffffff })), 0.17, 0, 0); put(kn, box(0.26, 0.035, 0.06, M(0x4a3020)), -0.12, 0, 0);
+    put(X.s, kn, 0.55, 0.03, 0.4, 0.6);
+    cam(X, 0.7, 0.8, 1.2, 0.05, 0, 0.05, 45, 0.02);
+  };
+
+  SCENES.v_watch = function (X) {
+    vig(X, { bg: 0x080608, sky: 0x7a6a5a, hemi: 0.3 });
+    var L = new T.PointLight(0xffd8a0, 1, 3, 1.5); L.position.set(0.5, 0.8, 0.4); X.s.add(L);
+    var cloth = canvasTex('baize', 128, 128, function (g, w, h) { g.fillStyle = '#2a1a1e'; g.fillRect(0, 0, w, h); for (var i = 0; i < 600; i++) { g.fillStyle = 'rgba(255,255,255,' + Math.random() * 0.04 + ')'; g.fillRect(Math.random() * w, Math.random() * h, 1, 2); } }, true);
+    var cl = plane(3, 3, new T.MeshPhongMaterial({ map: cloth })); cl.rotation.x = -Math.PI / 2; X.s.add(cl);
+    var face = canvasTex('watchface', 256, 256, function (g) {
+      g.fillStyle = '#efe6d2'; g.beginPath(); g.arc(128, 128, 124, 0, 7); g.fill();
+      g.fillStyle = '#1a1612'; g.font = 'bold 26px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      var R_ = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+      for (var i = 0; i < 12; i++) { var a = i / 12 * Math.PI * 2 - Math.PI / 2; g.fillText(R_[i], 128 + Math.cos(a) * 96, 128 + Math.sin(a) * 96); }
+      for (var m = 0; m < 60; m++) { var b = m / 60 * Math.PI * 2; g.fillRect(128 + Math.cos(b) * 116 - 1, 128 + Math.sin(b) * 116 - 1, 2, 2); }
+      g.strokeStyle = '#1a1612'; g.lineCap = 'round';
+      var hA = (3 + 12 / 60) / 12 * Math.PI * 2 - Math.PI / 2, mA = 12 / 60 * Math.PI * 2 - Math.PI / 2;
+      g.lineWidth = 7; g.beginPath(); g.moveTo(128, 128); g.lineTo(128 + Math.cos(hA) * 58, 128 + Math.sin(hA) * 58); g.stroke();
+      g.lineWidth = 4; g.beginPath(); g.moveTo(128, 128); g.lineTo(128 + Math.cos(mA) * 88, 128 + Math.sin(mA) * 88); g.stroke();
+      g.beginPath(); g.arc(128, 128, 7, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(80,110,130,0.5)'; g.lineWidth = 1; for (var c = 0; c < 6; c++) { g.beginPath(); g.moveTo(60 + c * 20, 40); g.lineTo(90 + c * 12, 220); g.stroke(); }
+    });
+    var brass = M(0xb08a3a, { shininess: 90, specular: 0xffe0a0 });
+    put(X.s, cyl(0.3, 0.3, 0.06, brass, 32), 0, 0.03, 0);
+    var fc = mesh(new T.CircleGeometry(0.27, 32), new T.MeshPhongMaterial({ map: face, shininess: 60 })); fc.rotation.x = -Math.PI / 2; put(X.s, fc, 0, 0.062, 0);
+    put(X.s, mesh(new T.TorusGeometry(0.3, 0.02, 6, 32), brass), 0, 0.06, 0).rotation.x = Math.PI / 2;
+    // open lid
+    var lid = cyl(0.3, 0.3, 0.02, brass, 32); lid.rotation.x = 1.1; put(X.s, lid, 0, 0.26, -0.42);
+    put(X.s, cyl(0.04, 0.04, 0.07, brass, 10), 0, 0.03, -0.33);
+    // chain
+    for (var k = 0; k < 16; k++) put(X.s, mesh(new T.TorusGeometry(0.025, 0.007, 4, 8), brass), -0.05 - k * 0.06, 0.01, -0.36 - Math.sin(k * 0.4) * 0.1).rotation.set(Math.PI / 2, 0, k);
+    // water beads
+    for (var d = 0; d < 26; d++) put(X.s, sph(rr(0.006, 0.018), new T.MeshPhongMaterial({ color: 0xd8e8f0, transparent: true, opacity: 0.7, shininess: 150, specular: 0xffffff }), 6), rr(-0.5, 0.5), 0.07, rr(-0.4, 0.5));
+    cam(X, 0.05, 0.95, 0.45, 0, 0, -0.02, 45, 0.015);
+  };
+
+  SCENES.v_ledger = function (X) {
+    vig(X, { bg: 0x0a0604, sky: 0x8a6a4a, hemi: 0.25 });
+    woodTable(X, 3, 3);
+    lamp(X, -0.55, 0.45, -0.35, 0xffc070, 2, 4, { glow: 1.6 });
+    var left = scrawlTex('ledgerL', { head: '24 Deepwinter.', scribble: 15, rule: true, ink: '#2a2018' });
+    var right = scrawlTex('ledgerR', { rule: true, ink: '#2a2018', draw: function (g, w, h) {
+      g.strokeStyle = '#2a2018'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(40, 440); g.bezierCurveTo(160, 380, 260, 260, 470, 90); g.stroke();
+      g.setLineDash([6, 8]); g.beginPath(); g.moveTo(50, 460); g.bezierCurveTo(170, 400, 280, 280, 480, 110); g.stroke(); g.setLineDash([]);
+      g.font = 'italic 22px Georgia, serif'; g.fillStyle = '#2a2018';
+      g.fillText('Works pipe', 30, 490); g.fillText('my hut', 190, 330); g.fillText('Chandelier', 300, 220); g.fillText('Narrows', 400, 70);
+      g.fillRect(186, 340, 18, 14); g.beginPath(); g.arc(320, 240, 14, 0, 7); g.stroke();
+      g.font = 'bold 30px Georgia, serif'; g.fillStyle = '#7a1a10'; g.fillText('CANDLED', 250, 420);
+    } });
+    var cover = box(1.35, 0.04, 0.95, M(0x2a3a2a)); put(X.s, cover, 0, 0.02, 0);
+    paperSheet(X, left, 0.64, 0.9, -0.33, 0.055, 0, -Math.PI / 2, 0.03);
+    paperSheet(X, right, 0.64, 0.9, 0.33, 0.055, 0, -Math.PI / 2, -0.03);
+    var pen = cyl(0.008, 0.008, 0.36, M(0x3a2a1a), 6); pen.rotation.z = Math.PI / 2; pen.rotation.y = 0.5; put(X.s, pen, 0.5, 0.07, 0.35);
+    // spectacles
+    [[-0.08, 0], [0.08, 0]].forEach(function (e) { put(X.s, mesh(new T.TorusGeometry(0.05, 0.005, 4, 16), M(0x8a7a50, { shininess: 60 })), 0.72 + e[0], 0.03, -0.35).rotation.x = Math.PI / 2; });
+    cam(X, 0.05, 1.25, 0.75, 0, 0, -0.02, 48, 0.02);
+  };
+
+  SCENES.v_letter = function (X) {
+    vig(X, { bg: 0x08060a, sky: 0x7a6a5a, hemi: 0.3 });
+    woodTable(X, 3, 3, '#3a2a20');
+    var L = new T.PointLight(0xffd8a0, 1, 3.5, 1.5); L.position.set(-0.4, 0.8, 0.2); X.s.add(L);
+    var tex = scrawlTex('sarreletter', { paper: '#e2d6ba', ink: '#1a1a30', head: 'Examiner Marrow —', headSize: 34, top: 80, scribble: 13, lw: 2.4, draw: function (g, w, h) {
+      g.font = 'italic 30px Georgia, serif'; g.fillStyle = '#1a1a30'; g.fillText('A. Sarre, Warden', 250, 470);
+    } });
+    paperSheet(X, tex, 0.7, 0.9, 0, 0.01, 0.05, -Math.PI / 2, 0.12);
+    var env = plane(0.6, 0.36, M(0xd8c8a4, { side: T.DoubleSide })); env.rotation.x = -Math.PI / 2; env.rotation.z = -0.3; put(X.s, env, 0.55, 0.005, -0.4);
+    put(X.s, cyl(0.05, 0.05, 0.012, M(0x8a1a1a, { shininess: 40 }), 12), 0.5, 0.012, -0.36);
+    cam(X, 0.1, 1.15, 0.55, 0, 0, 0.02, 48, 0.02);
+  };
+
+  SCENES.v_bell = function (X) {
+    skyBg(X, 'bellsky', [[0, '#0c1018'], [0.5, '#1e2434'], [1, '#3a3044']], {});
+    lights(X, { sky: 0x5a6a8a, ground: 0x10101a, hemi: 0.5, dirI: 0.2, fog: 0x1a1c28, fogD: 0.04 });
+    var prof = []; for (var i = 0; i <= 12; i++) { var t = i / 12; prof.push(new T.Vector2(0.1 + Math.pow(t, 1.8) * 0.42, 0.62 - t * 0.62)); }
+    var bell = mesh(new T.LatheGeometry(prof, 20), M(0x3a3634, { shininess: 70, specular: 0xa09080, side: T.DoubleSide }));
+    put(X.s, bell, 0, 2.1, 0);
+    put(X.s, sph(0.08, M(0x2a2624)), 0, 1.6, 0);
+    var wd = M(0x3a2a1e);
+    put(X.s, box(0.1, 1.6, 0.1, wd), -0.75, 2, 0); put(X.s, box(0.1, 1.6, 0.1, wd), 0.75, 2, 0); put(X.s, box(1.7, 0.12, 0.14, wd), 0, 2.8, 0);
+    var roof = mesh(new T.CylinderGeometry(1, 1, 1, 3), M(0x1c1a1e)); roof.rotation.x = -Math.PI / 2; roof.scale.set(2.4, 3, 0.8); put(X.s, roof, 0, 0.8, 0);
+    put(X.s, cyl(0.012, 0.012, 2.4, M(0x9a7a4a), 4), 0.05, 0.4, 0.05);
+    lamp(X, 1.4, 1.4, 0.5, 0xffb060, 1.8, 8, { glow: 1.8 });
+    snow(X, 500, [-4, 4, -1, 5, -3, 3], { size: 0.03, color: 0xb8c8d8, opacity: 0.5, speed: 3, sway: 0 });
+    var sw = 0; X.upd.push(function (tt) { bell.rotation.z = Math.sin(tt * 1.6) * 0.18; });
+    cam(X, 1.2, 0.9, 3.2, 0, 2.1, 0, 50, 0.05);
+  };
+
+  SCENES.v_chisel = function (X) {
+    vig(X, { bg: 0x0a0604, sky: 0x6a4a3a, hemi: 0.25, fog: 0x100806, fogD: 0.12 });
+    var L = new T.PointLight(0xff8a3c, 2.4, 6, 1.2); L.position.set(0.6, 0.8, -2.2); X.s.add(L);
+    glow(X.s, 0.6, 0.8, -2.4, 3, 0xff7a30, 0.45);
+    var wallT = planksTex('hutplank', '#4a3426', true);
+    put(X.s, plane(6, 4, new T.MeshPhongMaterial({ map: wallT })), 0, 1.5, -3);
+    var girl = person({ h: 1.6, coat: 0x5a2a24, skin: 0xc8a088, hair: 0x1a1210, pose: 'hold', long: false, face: true, legs: 0x2a2020 });
+    put(X.s, girl, 0, -0.5, -1.4, 0);
+    var ch = new T.Group();
+    var shaft = cyl(0.035, 0.035, 1.5, M(0x6a4a30), 8); shaft.rotation.x = Math.PI / 2; put(ch, shaft, 0, 0, -0.75);
+    put(ch, cyl(0.045, 0.045, 0.08, M(0x3a3a40, { shininess: 60 }), 8), 0, 0, 0.02).rotation.x = Math.PI / 2;
+    var head = box(0.09, 0.03, 0.3, M(0x8a8e96, { shininess: 90, specular: 0xffffff })); put(ch, head, 0, 0, 0.2);
+    var tip = mesh(new T.ConeGeometry(0.06, 0.2, 4), M(0xb8bcc4, { shininess: 120, specular: 0xffffff })); tip.rotation.x = Math.PI / 2; tip.scale.set(1, 1, 0.35); put(ch, tip, 0, 0, 0.44);
+    put(X.s, ch, 0.16, 0.7, 0.25).rotation.set(-0.1, 0.5, 0.15);
+    var kl = new T.PointLight(0xffb070, 0.7, 2, 1.5); kl.position.set(0.3, 1, 0.9); X.s.add(kl);
+    cam(X, 0.12, 0.8, 1.35, 0, 0.75, -1.2, 50, 0.015);
+  };
+
+  SCENES.v_trapdoor = function (X) {
+    vig(X, { bg: 0x050404, sky: 0x6a5a4a, hemi: 0.2 });
+    var floorT = planksTex('hutfloor', '#3e2c20', false);
+    var fl = plane(4, 4, new T.MeshPhongMaterial({ map: floorT })); fl.rotation.x = -Math.PI / 2; X.s.add(fl);
+    var water = plane(1, 1, new T.MeshPhongMaterial({ color: 0x03070c, shininess: 150, specular: 0x7a9aaa })); water.rotation.x = -Math.PI / 2; put(X.s, water, 0, 0.005, 0);
+    [[0, -0.52, 1.14, 0.1], [0, 0.52, 1.14, 0.1], [-0.52, 0, 0.1, 0.94], [0.52, 0, 0.1, 0.94]].forEach(function (e) { put(X.s, box(e[2], 0.05, e[3], M(0xa8c0d0, { shininess: 80, specular: 0xffffff })), e[0], 0.02, e[1]); });
+    var L = new T.PointLight(0xffc070, 2, 4, 1.2); L.position.set(0.4, 1.3, -0.3); X.s.add(L);
+    lamp(X, 0.4, 1.3, -0.3, 0xffc070, 0, 0, { light: false, glow: 1.2 });
+    var curve = new T.CatmullRomCurve3([new T.Vector3(-1.3, 0.04, 0.8), new T.Vector3(-0.6, 0.04, 0.4), new T.Vector3(-0.2, 0.03, 0.15), new T.Vector3(0, -0.4, 0)]);
+    X.s.add(mesh(new T.TubeGeometry(curve, 30, 0.025, 6), M(0x9a7a44)));
+    reflect(X, 0.15, -0.4, 0.2, 0.7, 0xffb060, { opacity: 0.35 });
+    cam(X, 0.2, 1.6, 1.0, 0, 0, 0, 45, 0.02);
+  };
+
+  SCENES.v_valuation = function (X) {
+    vig(X, { bg: 0x040806, sky: 0x6a8a6a, hemi: 0.3 });
+    var baize = canvasTex('greenbaize', 128, 128, function (g, w, h) { g.fillStyle = '#1e3a24'; g.fillRect(0, 0, w, h); for (var i = 0; i < 700; i++) { g.fillStyle = 'rgba(0,0,0,' + Math.random() * 0.12 + ')'; g.fillRect(Math.random() * w, Math.random() * h, 1, 1); } }, true);
+    var b = plane(3, 3, new T.MeshPhongMaterial({ map: baize })); b.rotation.x = -Math.PI / 2; X.s.add(b);
+    var L = new T.PointLight(0xe8f0b0, 1, 3, 1.5); L.position.set(0.2, 0.7, -0.1); X.s.add(L);
+    var card = canvasTex('valuation', 512, 320, function (g, w, h) {
+      g.fillStyle = '#ece4cc'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#2a4a34'; g.lineWidth = 6; g.strokeRect(12, 12, w - 24, h - 24); g.lineWidth = 1; g.strokeRect(22, 22, w - 44, h - 44);
+      g.fillStyle = '#1e3a28'; g.textAlign = 'center'; g.font = 'bold 30px Georgia, serif'; g.fillText('THE GREAT MUTUAL OF AUBADE', w / 2, 64);
+      g.font = 'italic 20px Georgia, serif'; g.fillText('Certificate of Valuation of a Life', w / 2, 94);
+      g.textAlign = 'left'; g.font = '20px Georgia, serif'; g.fillStyle = '#2a2018';
+      g.fillText('Holder: ______________________', 44, 146); g.fillText('Occupation: ice-cutter, Local Nine', 44, 178);
+      g.font = 'bold 34px Georgia, serif'; g.fillText('Valued at  1,140 Crowns', 44, 236);
+      g.save(); g.translate(390, 250); g.rotate(-0.25); g.strokeStyle = 'rgba(160,30,20,0.8)'; g.lineWidth = 4; g.strokeRect(-70, -26, 140, 52); g.fillStyle = 'rgba(160,30,20,0.85)'; g.font = 'bold 22px Georgia, serif'; g.textAlign = 'center'; g.fillText('ASSESSED', 0, 8); g.restore();
+    });
+    paperSheet(X, card, 0.8, 0.5, 0, 0.01, 0, -Math.PI / 2, 0.06);
+    var st = new T.Group(); put(st, cyl(0.06, 0.07, 0.05, M(0x4a1a14)), 0, 0.025, 0); put(st, cyl(0.02, 0.02, 0.14, M(0xb08a3a, { shininess: 80 })), 0, 0.12, 0); put(st, sph(0.045, M(0x2a1a14, { shininess: 50 })), 0, 0.22, 0);
+    put(X.s, st, 0.55, 0, -0.25);
+    cam(X, 0.05, 0.9, 0.5, 0, 0, 0, 45, 0.015);
+  };
+
+  SCENES.v_pipe = function (X) {
+    skyBg(X, 'pipesky', [[0, '#0a1016'], [0.5, '#1c2c34'], [1, '#2a3a36']], {});
+    lights(X, { sky: 0x6a8a8a, ground: 0x0a1010, hemi: 0.55, dirI: 0.3, dx: 20, dy: 30, dz: 30, fog: 0x1a2a2a, fogD: 0.05 });
+    ground(X, 40, 0x6a7888, { shine: 30, bumps: 0.12, map: speckTex('rotten', '#8a9098', 0.35, 1800, 4) });
+    var iron = M(0x3a3c42, { shininess: 50, specular: 0x6a7a7a });
+    var pipe = cyl(0.7, 0.7, 7, iron, 20); pipe.rotation.z = Math.PI / 2; put(X.s, pipe, -3.6, 0.75, -0.6);
+    for (var f = 0; f < 3; f++) { var fl = cyl(0.8, 0.8, 0.12, M(0x2a2c30, { shininess: 40 }), 20); fl.rotation.z = Math.PI / 2; put(X.s, fl, -0.1 - f * 2.2, 0.75, -0.6); }
+    var mouth = mesh(new T.CircleGeometry(0.62, 20), E(0x020404)); mouth.rotation.y = Math.PI / 2; put(X.s, mouth, 0.0, 0.75, -0.6);
+    for (var rv = 0; rv < 10; rv++) put(X.s, sph(0.04, M(0x2a2420), 5), -0.12, 0.75 + Math.sin(rv / 10 * 6.28) * 0.75, -0.6 + Math.cos(rv / 10 * 6.28) * 0.75);
+    // the warm water spilling out and the steam off it
+    var fall = plane(1.0, 0.9, new T.MeshPhongMaterial({ color: 0x6a8a80, transparent: true, opacity: 0.55, shininess: 100, specular: 0xb8f0c8, side: T.DoubleSide })); fall.rotation.set(0, Math.PI / 2, -0.8); put(X.s, fall, 0.3, 0.4, -0.6);
+    var pool = mesh(new T.CircleGeometry(2.4, 24), new T.MeshPhongMaterial({ color: 0x061210, shininess: 150, specular: 0x9ac0b0 })); pool.rotation.x = -Math.PI / 2; pool.position.set(1.8, 0.02, -0.4); pool.scale.set(1.2, 1, 1); X.s.add(pool);
+    for (var s2 = 0; s2 < 5; s2++) smoke(X, 0.6 + rr(0, 2.5), 0.15, rr(-1.4, 0.6), { n: 4, size: 1, rise: 2.8, drift: 1, opacity: 0.16, color: 0xc8d0c8, speed: 0.07 });
+    lamp(X, -1.6, 2.6, -2.6, 0xd8f0c0, 1.4, 12, { glow: 1.6 });
+    reflect(X, 1.4, -1.6, 0.6, 3, 0xb8f0c8, { opacity: 0.3 });
+    for (var c = 0; c < 36; c++) { var a = rr(0, 6.28), r = rr(2.2, 3.2); var sp = mesh(new T.ConeGeometry(rr(0.03, 0.07), rr(0.15, 0.4), 5), M(0xa8b4bc, { transparent: true, opacity: 0.8 })); put(X.s, sp, 1.8 + Math.cos(a) * r * 1.2, 0.08, -0.4 + Math.sin(a) * r); }
+    cam(X, 3.2, 1.5, 2.6, -0.6, 0.6, -0.6, 52, 0.05);
+  };
+
+  SCENES.v_jars = function (X) {
+    vig(X, { bg: 0x0c0604, sky: 0x8a6a4a, hemi: 0.2, fog: 0x1a0c06, fogD: 0.25 });
+    var shelf = box(3, 0.06, 0.5, M(0x5a3e24)); put(X.s, shelf, 0, 0.4, 0);
+    put(X.s, box(3, 0.06, 0.5, M(0x5a3e24)), 0, 0.8, -0.5);
+    var jarM = new T.MeshPhongMaterial({ color: 0xd8b070, emissive: 0x7a3a10, transparent: true, opacity: 0.75, shininess: 90 });
+    var flames = [];
+    for (var i = 0; i < 26; i++) { var row = i < 13 ? 0 : 1; var x = -1.3 + (i % 13) * 0.21 + rr(-0.03, 0.03), y = row ? 0.83 : 0.43, z = row ? -0.5 : rr(-0.1, 0.12); put(X.s, cyl(0.065, 0.065, 0.16, jarM, 10), x, y + 0.08, z); flames.push(new T.Vector3(x, y + 0.2, z)); }
+    X.s.add(new T.Points(new T.BufferGeometry().setFromPoints(flames), new T.PointsMaterial({ size: 0.16, map: glowTex(), color: 0xffc860, transparent: true, depthWrite: false, blending: T.AdditiveBlending })));
+    var L = new T.PointLight(0xffb050, 2.4, 4, 1.2); L.position.set(0, 0.8, 0.5); X.s.add(L);
+    X.upd.push(function (t) { L.intensity = 2.4 * (0.88 + 0.12 * Math.sin(t * 7)); });
+    // a hand setting down one more jar
+    var hand = hand2(M(0xc8a088), 2.4, 0.5, 0.05); hand.rotation.set(0, 0, 1.6); put(X.s, hand, 0.58, 0.6, 0.22);
+    put(X.s, cyl(0.065, 0.065, 0.16, jarM, 10), 0.42, 0.58, 0.22);
+    glow(X.s, 0.42, 0.7, 0.22, 0.4, 0xffd070, 0.8);
+    put(X.s, cyl(0.07, 0.08, 0.5, M(0x6e6a66), 8), 0.95, 0.56, 0.2).rotation.z = 1.2;
+    cam(X, 0.1, 0.7, 1.4, 0.05, 0.55, 0, 50, 0.015);
+  };
+
+  SCENES.v_notebook = function (X) {
+    vig(X, { bg: 0x0a0c14, sky: 0x6a7aa0, hemi: 0.4 });
+    var L = new T.PointLight(0xffc070, 0.9, 3, 1.5); L.position.set(0.5, 0.6, 0.4); X.s.add(L);
+    var tex = scrawlTex('thingsnot', { paper: '#e8e0cc', ink: '#1a1a2a', head: 'Things Not Entered', headSize: 30, scribble: 14, lw: 1.6, rule: true });
+    var cover = box(0.46, 0.03, 0.62, M(0x141216)); put(X.s, cover, 0, 0.3, 0);
+    paperSheet(X, tex, 0.42, 0.58, 0.01, 0.32, 0, -Math.PI / 2 + 0.02, 0);
+    // her hands: gloves with the fingertips cut away
+    var glove = M(0x3a3438);
+    var hl = hand2(M(0xd8b8a0), 1.9, 0.55, 0.05); hl.rotation.set(-Math.PI / 2, 0, 0.9); put(X.s, hl, -0.3, 0.33, 0.2);
+    var gv = sph(0.1, glove, 10); gv.scale.set(0.95, 0.5, 1.15); put(X.s, gv, -0.33, 0.33, 0.22);
+    put(X.s, cyl(0.07, 0.08, 0.35, M(0x2c2c3a), 8), -0.45, 0.32, 0.4).rotation.set(Math.PI / 2, 0, 0.9);
+    var pencil = cyl(0.008, 0.008, 0.22, M(0xc89a2a), 6); pencil.rotation.z = Math.PI / 2; pencil.rotation.y = -0.6; put(X.s, pencil, 0.18, 0.34, 0.1);
+    put(X.s, plane(4, 4, M(0x1a1c26)), 0, -0.2, 0).rotation.x = -Math.PI / 2;
+    snow(X, 200, [-1, 1, 0.3, 1.6, -1, 1], { size: 0.02, opacity: 0.7 });
+    cam(X, 0.05, 0.95, 0.45, 0, 0.3, 0, 48, 0.015);
+  };
+
+  SCENES.v_snowname = function (X) {
+    vig(X, { bg: 0x10141e, sky: 0x8a9ac0, hemi: 0.5, fog: 0x141824, fogD: 0.12 });
+    var L = new T.PointLight(0xffc890, 1.4, 5, 1.2); L.position.set(-0.8, 0.9, -0.4); X.s.add(L);
+    var tex = canvasTex('feliks', 512, 256, function (g, w, h) {
+      g.fillStyle = '#d2d8e6'; g.fillRect(0, 0, w, h);
+      for (var i = 0; i < 1500; i++) { g.fillStyle = 'rgba(' + (Math.random() < 0.5 ? '255,255,255,' : '60,70,100,') + Math.random() * 0.12 + ')'; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+      g.font = 'italic 140px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 16; g.strokeStyle = 'rgba(70,80,110,0.55)'; g.strokeText('Feliks', w / 2, h / 2);
+      g.lineWidth = 6; g.strokeStyle = 'rgba(40,46,70,0.5)'; g.strokeText('Feliks', w / 2 + 2, h / 2 + 3);
+      // a boot has scuffed through the end of it
+      g.fillStyle = 'rgba(210,216,230,0.85)'; g.beginPath(); g.ellipse(452, 150, 34, 80, 0.5, 0, 7); g.fill();
+      g.fillStyle = 'rgba(70,80,110,0.3)'; for (var k = 0; k < 6; k++) g.fillRect(430 + k * 8, 90 + k * 20, 34, 5);
+    });
+    var sn = plane(2.4, 1.2, new T.MeshPhongMaterial({ map: tex, shininess: 8 })); sn.rotation.x = -Math.PI / 2; X.s.add(sn);
+    ground(X, 20, 0xc8d0e0, { shine: 8, y: -0.005, map: speckTex('snowgrain', '#c8d0e0', 0.2, 1200, 2) });
+    snow(X, 300, [-2, 2, 0, 2, -2, 2], { size: 0.025 });
+    cam(X, 0.1, 1.2, 1.1, 0, 0, 0, 50, 0.02);
+  };
+
+  SCENES.v_saws = function (X) {
+    vig(X, { bg: 0x0c0604, sky: 0x6a4a40, hemi: 0.35, fog: 0x1a0e0c, fogD: 0.05 });
+    var wallT = planksTex('shedplank', '#3a2a22', true); wallT.repeat.set(3, 1);
+    put(X.s, plane(8, 4, new T.MeshPhongMaterial({ map: wallT })), 0, 1.8, -0.2);
+    var steel = M(0x7a8490, { shininess: 90, specular: 0xd0e0ff });
+    var cool = new T.PointLight(0x9ab8e0, 0.8, 8, 1.4); cool.position.set(-1.5, 2.5, 2); X.s.add(cool);
+    for (var i = 0; i < 4; i++) {
+      var y = 2.9 - i * 0.62, g = new T.Group();
+      put(g, box(3.4, 0.28, 0.03, steel), 0, 0, 0);
+      for (var t = 0; t < 34; t++) { var tooth = mesh(new T.ConeGeometry(0.045, 0.14, 3), steel); tooth.rotation.z = Math.PI; put(g, tooth, -1.65 + t * 0.1, -0.18, 0); }
+      put(g, box(0.1, 0.5, 0.1, M(0x5a3a20)), -1.75, 0.1, 0.02); put(g, box(0.1, 0.5, 0.1, M(0x5a3a20)), 1.75, 0.1, 0.02);
+      put(X.s, g, rr(-0.3, 0.3), y, 0, 0).rotation.z = rr(-0.03, 0.03);
+      put(X.s, cyl(0.03, 0.03, 0.2, M(0x2a2420), 5), -1.2, y + 0.18, 0.05).rotation.x = Math.PI / 2;
+      put(X.s, cyl(0.03, 0.03, 0.2, M(0x2a2420), 5), 1.2, y + 0.18, 0.05).rotation.x = Math.PI / 2;
+    }
+    var L = new T.PointLight(0xff8a40, 1.2, 8, 1.4); L.position.set(1.2, 0.6, 1.6); X.s.add(L);
+    cam(X, -0.9, 1.7, 3.2, 0.2, 1.8, 0, 52, 0.04);
+  };
+
+  SCENES.v_cake = function (X) {
+    vig(X, { bg: 0x0a0604, sky: 0x8a6a4a, hemi: 0.3 });
+    var L = new T.PointLight(0xff9a50, 0.9, 3, 1.5); L.position.set(0.5, 0.5, 0.3); X.s.add(L);
+    var glove = M(0x3a302a);
+    var gh = hand2(glove, 4.2, 0.35, 0.08); gh.rotation.set(-Math.PI / 2, 0, 0); put(X.s, gh, 0, 0.0, 0.05);
+    put(X.s, cyl(0.1, 0.12, 0.6, M(0x2a2a30), 8), 0, -0.05, -0.45).rotation.x = Math.PI / 2;
+    var paper = plane(0.4, 0.36, new T.MeshPhongMaterial({ color: 0xe8dcc0, transparent: true, opacity: 0.85, shininess: 60, side: T.DoubleSide })); paper.rotation.x = -Math.PI / 2; paper.rotation.z = 0.3; put(X.s, paper, 0, 0.04, 0.02);
+    var cake = box(0.2, 0.08, 0.14, M(0xb07a3a, { shininess: 30 })); put(X.s, cake, 0, 0.09, 0.02, 0.3);
+    put(X.s, box(0.2, 0.012, 0.14, M(0xe0a84a, { shininess: 90, specular: 0xffe0a0 })), 0, 0.135, 0.02, 0.3);
+    put(X.s, plane(4, 4, M(0x3e2c20)), 0, -0.6, 0).rotation.x = -Math.PI / 2;
+    cam(X, 0.2, 0.55, 0.55, 0, 0.05, 0, 45, 0.015);
+  };
+
+  SCENES.v_chestnuts = function (X) {
+    vig(X, { bg: 0x0a0806, sky: 0x8a6a4a, hemi: 0.3, fog: 0x100a08, fogD: 0.1 });
+    fire(X, 0.7, -1.6, 0.5);
+    var cone = mesh(new T.ConeGeometry(0.16, 0.42, 14, 1, true), new T.MeshPhongMaterial({ color: 0xd8c8a0, side: T.DoubleSide, map: scrawlTex('newsprint', { paper: '#d8ccaa', scribble: 18, lw: 1, ink: '#5a5040' }) }));
+    cone.rotation.x = Math.PI; put(X.s, cone, 0, 0.3, 0);
+    var cl = new T.PointLight(0xffa860, 0.8, 2, 1.5); cl.position.set(0.3, 0.7, 0.5); X.s.add(cl);
+    for (var i = 0; i < 9; i++) { var n = sph(0.045, M(0x6a3018, { shininess: 60 }), 7); n.scale.set(1, 0.8, 1); put(X.s, n, rr(-0.1, 0.1), 0.53 + rr(0, 0.05), rr(-0.1, 0.1)); }
+    var hand = hand2(M(0xc8a088), 2.4, 0.9, 0.05); hand.rotation.set(0.3, 0, 0.2); put(X.s, hand, -0.02, 0.2, 0.1);
+    smoke(X, 0, 0.6, 0, { n: 4, size: 0.4, rise: 0.8, drift: 0.1, opacity: 0.25, color: 0xd8d0c8, speed: 0.2 });
+    cam(X, 0.2, 0.7, 0.8, 0, 0.42, 0, 50, 0.015);
+  };
+
+  SCENES.v_raining = function (X) {
+    hall(X, { act3: true });
+    X.s.fog = new T.FogExp2(0x1a0a0c, 0.06);
+    var drops = snow(X, 500, [-3, 3, 0, 5.6, -4, 2], { size: 0.05, color: 0xd8f0ff, opacity: 0.8, speed: 4, sway: 0 });
+    for (var d = 0; d < 10; d++) { var cx = rr(-4, 4), cz = rr(-3, 3); var a = person({ h: 1.75, coat: pick([0x1a1a22, 0x8a1a2a, 0x1a4a3a, 0xd0b060]), pose: 'dance', long: false }); put(X.s, a, cx, 0, cz, rr(0, 6)); }
+    cam(X, 0.4, 1.4, 3.5, 0, 5.8, -1, 62, 0.06);
+  };
+
+  SCENES.v_crack = function (X) {
+    skyBg(X, 'cracksky', [[0, '#0c1018'], [0.55, '#2a2a3a'], [1, '#4a3a44']], {});
+    lights(X, { sky: 0x5a6a8a, ground: 0x0a0a12, hemi: 0.5, dirI: 0.2, fog: 0x1c1c28, fogD: 0.05 });
+    ground(X, 60, 0x5a6478, { shine: 90, specular: 0x8a9ab0, map: speckTex('icegrain', '#8a96b0', 0.25, 900, 3) });
+    var pts = [], x = -0.3, z = 2;
+    while (z > -30) { pts.push([x, z]); x += rr(-0.8, 0.8); z -= rr(0.6, 1.6); }
+    for (var k = 0; k < pts.length - 1; k++) {
+      var a = pts[k], b = pts[k + 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      var wdt = 0.3 * (1 - k / pts.length) + 0.04;
+      var seg = box(wdt, 0.02, len, new T.MeshPhongMaterial({ color: 0x020508, shininess: 150, specular: 0x6a8aa0 }));
+      seg.position.set((a[0] + b[0]) / 2, 0.012, (a[1] + b[1]) / 2); seg.rotation.y = Math.atan2(b[0] - a[0], b[1] - a[1]); X.s.add(seg);
+    }
+    // meltwater puddles, lanterns reflected
+    for (var p = 0; p < 7; p++) { var pd = mesh(new T.CircleGeometry(rr(0.4, 1.4), 14), new T.MeshPhongMaterial({ color: 0x0a1018, shininess: 150, specular: 0x9ab0c8 })); pd.rotation.x = -Math.PI / 2; pd.position.set(rr(-5, 5), 0.01, rr(-14, 0)); X.s.add(pd); }
+    for (var l = 0; l < 6; l++) { var lx = rr(-7, 7), lz = rr(-24, -5); lanternPole(X, lx, lz, 2.4, l < 2); reflect(X, lx, lz, 0.5, 6, 0xffb060, { opacity: 0.35 }); }
+    var boot = box(0.14, 0.12, 0.3, M(0x141114)); put(X.s, boot, 0.5, 0.06, 1.3, 0.3);
+    snow(X, 600, [-6, 6, 0, 5, -10, 3], { size: 0.03, color: 0xb8c8d8, opacity: 0.5, speed: 3, sway: 0 });
+    cam(X, 0.2, 1.3, 3.2, -0.3, 0, -8, 55, 0.04);
+  };
+
+  SCENES.v_boathook = function (X) {
+    vig(X, { bg: 0x0a0604, sky: 0x6a4a3a, hemi: 0.3 });
+    var wallT = planksTex('hutplank', '#4a3426', true); wallT.repeat.set(2, 1);
+    put(X.s, plane(5, 3, new T.MeshPhongMaterial({ map: wallT })), 0, 1.2, 0);
+    var L = new T.PointLight(0xffb060, 1, 4, 1.5); L.position.set(0.8, 1.9, 1.2); X.s.add(L);
+    var hook = new T.Group();
+    put(hook, cyl(0.045, 0.045, 3, M(0x6a4a30), 8), 0, 0, 0).rotation.z = Math.PI / 2;
+    for (var n = 0; n < 44; n++) put(hook, box(0.006, 0.08, 0.03, E(0x1a100a)), -1.2 + n * 0.05, 0, 0.04);
+    var iron = M(0x3a3a40, { shininess: 60 });
+    put(hook, cyl(0.035, 0.035, 0.25, iron, 8), 1.55, 0, 0).rotation.z = Math.PI / 2;
+    var hk = mesh(new T.TorusGeometry(0.16, 0.035, 6, 12, Math.PI * 1.2), iron); put(hook, hk, 1.75, 0.13, 0);
+    put(hook, mesh(new T.ConeGeometry(0.025, 0.2, 6), iron), 1.8, 0, 0).rotation.z = -Math.PI / 2;
+    put(X.s, hook, 0, 1.3, 0.12);
+    [-0.9, 0.9].forEach(function (px) { put(X.s, cyl(0.02, 0.02, 0.18, M(0x2a2018), 5), px, 1.25, 0.1).rotation.x = Math.PI / 2; });
+    cam(X, 1.0, 1.5, 1.25, 1.15, 1.3, 0, 58, 0.015);
+  };
+
+  SCENES.v_lantern = function (X) {
+    skyBg(X, 'dawnlamp', [[0, '#3a3a5a'], [0.45, '#8a6a7a'], [0.55, '#e8a888'], [0.6, '#f0c89a'], [1, '#6a5a6a']], {});
+    lights(X, { sky: 0xd8a8a0, ground: 0x2a2a34, hemi: 0.8, dirColor: 0xffc8a0, dirI: 0.5, dx: 0, dy: 5, dz: -40, fog: 0x8a7a8a, fogD: 0.03 });
+    water(X, 200, 0x3a4458, { y: -0.1, shine: 120, specular: 0xffc8a0 });
+    var sh = plane(6, 3, new T.MeshPhongMaterial({ color: 0x4a4a50, shininess: 60, specular: 0x8a7a70 })); sh.rotation.x = -Math.PI / 2; put(X.s, sh, 0, 0.02, 1.3);
+    for (var st = 0; st < 40; st++) { var pb = sph(rr(0.03, 0.09), M(pick([0x5a5a60, 0x6a6660, 0x3a3a40]), { shininess: 50 }), 6); pb.scale.y = 0.5; put(X.s, pb, rr(-2.5, 2.5), 0.03, rr(0.2, 2.6)); }
+    for (var f = 0; f < 10; f++) floe(X, rr(-20, 20), rr(-40, -6), rr(0.8, 3));
+    var jarM = new T.MeshPhongMaterial({ color: 0xd8b070, emissive: 0x7a3a10, transparent: true, opacity: 0.8, shininess: 90 });
+    put(X.s, cyl(0.07, 0.07, 0.18, jarM, 10), 0, 0.1, 0.6);
+    glow(X.s, 0, 0.25, 0.6, 0.5, 0xffc860, 0.9);
+    var L = new T.PointLight(0xffb050, 1, 2, 1.2); L.position.set(0, 0.3, 0.7); X.s.add(L);
+    reflect(X, 0, -30, 3, 30, 0xffd0a0, { opacity: 0.4, y: -0.1 });
+    cam(X, 0.1, 0.5, 2.3, 0, 0.2, -6, 50, 0.03);
+  };
+
+  SCENES.v_cairn = function (X) {
+    skyBg(X, 'cairnsky', NIGHT_SKY, { stars: 200 });
+    lights(X, { sky: 0x4a5a8a, ground: 0x10101a, hemi: 0.55, dirI: 0.25, fog: 0x1c1a30, fogD: 0.02 });
+    ground(X, 100, 0x8a96b4, { shine: 20, map: speckTex('snowgrain', '#c8d0e0', 0.2, 1200, 2) });
+    var iceM = new T.MeshPhongMaterial({ color: 0xc8dce6, emissive: 0x18242c, shininess: 60, specular: 0xffffff, flatShading: true });
+    var layers = [[5, 0.5], [4, 0.4], [3, 0.3], [1, 0.22]];
+    var y = 0;
+    layers.forEach(function (lv, li) { for (var i = 0; i < lv[0]; i++) { var a = (i / lv[0]) * Math.PI * 2 + li; var bx = mesh(new T.DodecahedronGeometry(lv[1] * 0.55, 0), iceM); bx.scale.y = 0.6; put(X.s, bx, Math.cos(a) * (0.35 - li * 0.1), y + 0.11, Math.sin(a) * (0.35 - li * 0.1), a); } y += 0.2; });
+    var plate = canvasTex('fmplate', 128, 96, function (g) { g.fillStyle = '#8a8a90'; g.fillRect(0, 0, 128, 96); g.strokeStyle = '#2a2a30'; g.lineWidth = 5; g.font = 'bold 56px Georgia, serif'; g.textAlign = 'center'; g.strokeText('F.M.', 64, 62); for (var k = 0; k < 200; k++) { g.fillStyle = 'rgba(60,40,30,' + Math.random() * 0.3 + ')'; g.fillRect(Math.random() * 128, Math.random() * 96, 2, 2); } });
+    var pl = plane(0.3, 0.22, new T.MeshPhongMaterial({ map: plate, shininess: 70, specular: 0xffffff, emissive: 0x2a2a2a })); put(X.s, pl, 0, 0.16, 0.5).rotation.x = -0.15;
+    var jarM = new T.MeshPhongMaterial({ color: 0xd8b070, emissive: 0x7a3a10, transparent: true, opacity: 0.8, shininess: 90 });
+    put(X.s, cyl(0.07, 0.07, 0.18, jarM, 10), 0, y + 0.09, 0);
+    glow(X.s, 0, y + 0.2, 0, 0.8, 0xffc860, 0.9);
+    var L = new T.PointLight(0xffb050, 1.6, 4, 1.2); L.position.set(0, y + 0.3, 0.2); X.s.add(L);
+    // the far Glass and its lights, across the Narrows
+    for (var h = 0; h < 14; h++) hut(X, rr(-30, 10), rr(-70, -55), rr(0, 6), { smoke: false, props: false });
+    glow(X.s, -10, 3, -60, 20, 0xffa050, 0.3).material.fog = false;
+    var ch = plane(40, 6, new T.MeshPhongMaterial({ color: 0x03060a, shininess: 150, specular: 0x6a7a9a })); ch.rotation.x = -Math.PI / 2; ch.position.set(0, 0.01, -20); X.s.add(ch);
+    snow(X, 400, [-5, 5, 0, 5, -6, 3], { size: 0.04 });
+    cam(X, 0.3, 0.7, 1.6, 0, 0.35, 0, 50, 0.03);
+  };
+
+  SCENES.v_broadsheet = function (X) {
+    vig(X, { bg: 0x0a0806, sky: 0x8a7a5a, hemi: 0.35 });
+    woodTable(X, 3, 3, '#3a2a1c');
+    var L = new T.PointLight(0xffd8a0, 1, 3, 1.5); L.position.set(0.3, 0.8, 0.2); X.s.add(L);
+    var warn = !!X.v.f_press;
+    var sheet = canvasTex(warn ? 'lampwarn' : 'lampscandal', 512, 700, function (g, w, h) {
+      g.fillStyle = '#e4dcc6'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#141414'; g.textAlign = 'center';
+      g.font = 'bold 44px Georgia, serif'; g.fillText('THE EVENING LAMP', w / 2, 66);
+      g.fillRect(30, 80, w - 60, 3); g.font = 'italic 16px Georgia, serif'; g.fillText('Aubade · Special Sheet · The Last Night of Winter', w / 2, 102); g.fillRect(30, 112, w - 60, 1);
+      g.font = 'bold 60px Georgia, serif';
+      (warn ? ['THE ICE', 'WILL GO', 'TONIGHT'] : ['WARDEN', 'DROWNS', 'IN DRINK']).forEach(function (l, i) { g.fillText(l, w / 2, 190 + i * 66); });
+      g.font = 'italic 20px Georgia, serif'; g.fillText(warn ? 'Examiner orders the Glass cleared — walk ashore now' : 'Old ice-man found beneath the Chandelier', w / 2, 400);
+      g.textAlign = 'left'; g.fillStyle = 'rgba(20,20,20,0.75)';
+      for (var c = 0; c < 2; c++) for (var l = 0; l < 11; l++) g.fillRect(34 + c * 230, 430 + l * 22, 200 - Math.random() * (l === 10 ? 120 : 20), 7);
+    });
+    paperSheet(X, sheet, 0.6, 0.82, 0, 0.012, 0, -Math.PI / 2, -0.05);
+    // type in a composing stick
+    var stick = box(0.4, 0.03, 0.08, M(0x8a8a90, { shininess: 70 })); put(X.s, stick, 0.55, 0.02, 0.3, 0.4);
+    for (var t = 0; t < 14; t++) put(X.s, box(0.02, 0.04, 0.02, M(0x5a5a60, { shininess: 60 })), 0.4 + t * 0.022, 0.05, 0.25 + t * 0.009);
+    cam(X, 0.05, 1.05, 0.55, 0, 0, 0.02, 48, 0.015);
+  };
+
+  // ---------------------------------------------------------------- two more places
+  SCENES.narrows = function (X) {
+    skyBg(X, 'narrows', NIGHT_SKY, { stars: 260, clouds: [{ x: 0.3, y: 0.62, w: 0.7, h: 0.08, r: 0.2, n: 20, c: 'rgba(90,70,130,0.3)' }] });
+    lights(X, { sky: 0x4a5a8a, ground: 0x10101a, hemi: 0.55, dirI: 0.25, fog: 0x1c1a30, fogD: 0.012 });
+    ground(X, 400, 0x7a88a8, { shine: 30, bumps: 0.25, map: speckTex('snowgrain', '#c8d0e0', 0.2, 1200, 2) });
+    // pressure ridges
+    for (var r = 0; r < 26; r++) { var sl = box(rr(0.6, 1.6), rr(0.2, 0.9), rr(0.3, 0.8), M(0x9ab0c8, { shininess: 50, specular: 0xffffff })); put(X.s, sl, -14 + r * 1.1 + rr(-0.3, 0.3), 0.2, -10 + Math.sin(r * 0.5) * 1.5).rotation.set(rr(-0.5, 0.5), rr(0, 3), rr(-0.6, 0.6)); }
+    // the open lead: black water, floes
+    var lead = plane(80, 12, new T.MeshPhongMaterial({ color: 0x02050a, shininess: 150, specular: 0x6a7a9a })); lead.rotation.x = -Math.PI / 2; lead.position.set(0, 0.01, -24); X.s.add(lead);
+    for (var f = 0; f < 8; f++) floe(X, rr(-30, 30), rr(-28, -20), rr(0.6, 2), { color: 0x9aaac0 });
+    // warning posts, long ago
+    for (var p = 0; p < 6; p++) { put(X.s, cyl(0.04, 0.04, 1.6, M(0x3a2a20), 5), -8 + p * 3.2, 0.8, -15); put(X.s, plane(0.4, 0.25, M(0x8a2a20, { side: T.DoubleSide })), -7.8 + p * 3.2, 1.45, -15); }
+    // the Glass behind, far off
+    for (var h = 0; h < 30; h++) hut(X, rr(-50, 50), rr(40, 70), rr(0, 6), { smoke: false, props: false });
+    glow(X.s, 0, 6, 60, 40, 0xffa050, 0.25).material.fog = false;
+    city(X, 20, -160, { n: 110, spread: 60, hill: 22, lit: 0.45 });
+    reflect(X, 20, -60, 16, 36, 0xffa860, { opacity: 0.2 });
+    // a small cairn, and Ilse with the lantern
+    SCENES._cairnSmall(X, 1.5, -3);
+    people(X, [{ x: -0.8, z: 1.5, h: 1.66, coat: 0x2c2c3a, pose: 'stand', bun: true, hair: 0x1a1410, ry: Math.PI - 0.3, scarf: 0x6a2a3a, face: true }]);
+    lamp(X, -0.5, 0.95, 1.4, 0xffb45a, 1.2, 8, { glow: 1.4 });
+    snow(X, 700, [-15, 15, 0, 14, -20, 10], { size: 0.08 });
+    cam(X, -2.5, 1.9, 6.5, 1.5, 0.6, -8, 52, 0.12);
+  };
+  SCENES._cairnSmall = function (X, x, z) {
+    var iceM = new T.MeshPhongMaterial({ color: 0xa8d0e0, emissive: 0x1a3040, transparent: true, opacity: 0.9, shininess: 90 });
+    for (var i = 0; i < 8; i++) put(X.s, box(0.35, 0.2, 0.3, iceM), x + rr(-0.3, 0.3), 0.1 + (i > 4 ? 0.2 : 0) + (i > 6 ? 0.2 : 0), z + rr(-0.2, 0.2), rr(0, 3));
+    glow(X.s, x, 0.75, z, 0.8, 0xffc860, 0.8);
+    var L = new T.PointLight(0xffb050, 1, 4, 1.2); L.position.set(x, 0.9, z + 0.2); X.s.add(L);
+  };
+
+  SCENES.press = function (X) {
+    lights(X, { sky: 0x6a5a4a, ground: 0x0c0806, hemi: 0.35, dir: false, fog: 0x1a120c, fogD: 0.05 });
+    var wallT = planksTex('pressplank', '#3e3026', true); wallT.repeat.set(4, 1);
+    roomBox(X, 5, 2.6, 6, { wallMat: new T.MeshPhongMaterial({ map: wallT, side: T.BackSide }), floor: 0x2a2018 });
+    // the platen press: frame, great flywheel, platen and bed
+    var iron = M(0x1e1e22, { shininess: 50 });
+    var pr = new T.Group();
+    put(pr, box(0.9, 1.2, 0.8, iron), 0, 0.6, 0);
+    put(pr, box(0.7, 0.7, 0.08, iron), 0, 1.2, 0.35).rotation.x = -0.4;
+    var wheel = mesh(new T.TorusGeometry(0.55, 0.04, 6, 24), iron); put(pr, wheel, -0.6, 1.1, 0).rotation.y = Math.PI / 2;
+    for (var sp = 0; sp < 6; sp++) { var spk = box(0.03, 1.08, 0.03, iron); spk.rotation.x = sp / 6 * Math.PI; put(pr, spk, -0.6, 1.1, 0); }
+    put(pr, cyl(0.03, 0.03, 0.9, M(0x5a4030), 6), 0.6, 1.5, 0.2).rotation.z = 0.6;
+    put(pr, box(0.6, 0.02, 0.45, M(0xe8e0cc)), 0, 1.02, 0.45).rotation.x = -0.2;
+    put(X.s, pr, -0.9, 0, -1.6, 0.3);
+    X.upd.push(function (t) { wheel.rotation.x = t * 0.6; });
+    // type cases on a stand
+    var cs = new T.Group();
+    put(cs, box(1.3, 0.9, 0.5, M(0x5a4030)), 0, 0.45, 0);
+    for (var k = 0; k < 2; k++) { var tray = box(1.2, 0.06, 0.7, M(0x6a5038)); put(cs, tray, 0, 1.0 + k * 0.15, 0.1 - k * 0.1).rotation.x = -0.5; }
+    put(X.s, cs, 1.4, 0, -2.3, -0.2);
+    // sheets drying on lines
+    for (var l = 0; l < 3; l++) {
+      put(X.s, cyl(0.004, 0.004, 4.6, M(0x8a8070), 3), 0, 2.2 - l * 0.02, -1.5 + l * 1.2).rotation.z = Math.PI / 2;
+      for (var s2 = 0; s2 < 7; s2++) paperSheet(X, scrawlTex('press' + ((s2 + l) % 3), { paper: '#e0d8c2', head: 'THE EVENING LAMP', headSize: 34, scribble: 16, lw: 1.2, ink: '#222' }), 0.42, 0.56, -1.9 + s2 * 0.62, 1.9 - l * 0.02, -1.5 + l * 1.2, 0, rr(-0.05, 0.05));
+    }
+    stove(X, 2, 0.8, { intensity: 1.2, ry: -Math.PI / 2 });
+    lamp(X, 0, 2.05, -0.6, 0xffc070, 1.8, 8, { glow: 1.8 });
+    lamp(X, -1.2, 1.9, 0.9, 0xffc070, 1.2, 6, { glow: 1.4 });
+    var fillP = new T.PointLight(0xffd8a0, 0.8, 8, 1.2); fillP.position.set(1.5, 1.8, 2); X.s.add(fillP);
+    table(X, 0.6, 0.4, 1.2, 0.7, {});
+    paperSheet(X, scrawlTex('proofs', { paper: '#e6dcc4', scribble: 14, lw: 1.6 }), 0.5, 0.66, 0.6, 0.8, 0.4, -Math.PI / 2, 0.2);
+    // Wren, in an ink apron and a green eyeshade
+    people(X, [{ x: 0.2, z: -0.2, h: 1.7, coat: 0xd8d0c0, legs: 0x2a2a30, pose: 'hands', long: false, apron: 0x2a2a2a, hair: 0x7a3a1a, bun: true, hat: 'cap', hatColor: 0x1e6a3a, face: true, ry: 0.6 }]);
+    cam(X, 1.9, 1.5, 2.7, -0.6, 1.0, -1.6, 60, 0.06);
+  };
+
+  api.scenes = Object.keys(SCENES).filter(function (k) { return k.charAt(0) !== '_'; });
 
   // ---------------------------------------------------------------- lifecycle
   function disposeScene(sc) {
