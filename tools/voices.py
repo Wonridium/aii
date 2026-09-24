@@ -2,26 +2,25 @@
 """Renders the inner voices of Candle Ice.
 
     node tools/dump_lines.js > /tmp/lines.json
-    python3 tools/voices.py /tmp/lines.json [--voices DIR] [--only HASH,...]
+    python tools/voices.py /tmp/lines.json [--only HASH,...]
 
-Every line spoken by one of the sixteen skills (and by the dead) is read by a
-Piper neural voice, then dragged down into the register of an old radio
-narrator: pitched down with its formants kept, a gentle saturation for grain,
-chest EQ, a strong presence lift so the consonants cut through the music,
-compression and only a breath of room. Clarity comes first: every setting was
-checked against a speech recogniser (word error rate on a fixed sample). The
-lines are packed into MP3 sprites under voice/ and indexed in
-js/voice-manifest.js, keyed by the same hash the engine computes.
+Every line spoken by one of the sixteen skills (and by the dead) is read by
+Kokoro-82M, a small neural text-to-speech model with natural, sentence-aware
+intonation, in one deep British narrator's voice for all the skills (as Disco
+Elysium uses one actor), lowered a semitone with its formants kept, with a
+little chest and compression and no reverb. The dead get their own voices and
+their own rooms. The lines are packed into MP3 sprites under voice/ and indexed
+in js/voice-manifest.js, keyed by the same hash the engine computes.
 
-Needs: pip install piper-tts numpy imageio-ffmpeg (for an ffmpeg build with
-rubberband), and these Piper voices in --voices (default /tmp/piper):
-en_US-norman-medium, en_US-ryan-high, en_GB-northern_english_male-medium,
-en_GB-cori-medium.
+Needs (a virtualenv is simplest): pip install kokoro soundfile numpy
+imageio-ffmpeg, and espeak-ng for unknown words. Kokoro downloads its voices
+from Hugging Face on first use.
 """
 import concurrent.futures as cf
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import wave
@@ -62,34 +61,38 @@ def grain(drive=6, chest=4, presence=5, air=2):
 def room(delays, decays, gain_in=0.85, gain_out=0.75):
     return ['aecho=%g:%g:%s:%s' % (gain_in, gain_out, '|'.join(str(d) for d in delays), '|'.join(str(d) for d in decays))]
 
-# Voices were chosen by measuring intelligibility with a speech recogniser
-# (word error rate on a fixed sample): the deep en_US-ryan-high reads at ~6%,
-# where the old norman-based chain was at ~20% and the Cold was unreadable.
-NARRATOR = 'en_US-ryan-high'
+# How the voices were chosen (see README): naturalness was scored with a
+# neural MOS predictor (torchaudio SQUIM) and intelligibility with a speech
+# recogniser on a fixed sample. Piper scored 3.8/5; Kokoro's British "Lewis"
+# voice 4.5/5, deep (about 94 Hz) and with a wide, sentence-aware intonation.
+# Reverb and saturation both lowered the score, so the skills get almost no
+# processing: a touch of depth and chest, and compression.
+LIGHT = ['highpass=f=60', 'equalizer=f=130:t=q:w=1:g=2.5', 'equalizer=f=3200:t=q:w=1.2:g=1.5',
+         'acompressor=threshold=-22dB:ratio=2.5:attack=8:release=180:makeup=2']
+NARRATOR = ('b', 'bm_lewis')
 PROFILES = {
-    # The Examiner's head. One narrator, four moods.
-    'REASON': dict(voice=NARRATOR, length=1.03, pitch=0.83,
-                   chain=grain(6, chest=3, presence=6) + room([25, 50], [0.06, 0.04])),
-    'SOUL': dict(voice=NARRATOR, length=1.1, pitch=0.81,
-                 chain=grain(5, chest=5, presence=5) + room([40, 80], [0.1, 0.06])),
-    'FLESH': dict(voice=NARRATOR, length=1.05, pitch=0.79,
-                  chain=grain(8, chest=6, presence=5) + room([25, 50], [0.05, 0.03])),
-    'NERVE': dict(voice=NARRATOR, length=1.0, pitch=0.83,
-                  chain=grain(6, chest=4, presence=6) + room([25, 50], [0.06, 0.04])),
+    # The Examiner's head. One narrator, as in Disco Elysium; four tempers.
+    'REASON': dict(voice=NARRATOR, speed=0.96, pitch=0.95, chain=LIGHT),
+    'SOUL': dict(voice=NARRATOR, speed=0.87, pitch=0.94, chain=LIGHT),
+    'FLESH': dict(voice=NARRATOR, speed=0.93, pitch=0.92, chain=LIGHT),
+    'NERVE': dict(voice=NARRATOR, speed=0.98, pitch=0.95, chain=LIGHT),
     # The cold under the ice: slower, lower, a little further away.
-    'THE COLD': dict(voice=NARRATOR, length=1.3, pitch=0.74,
-                     chain=grain(6, chest=6, presence=4, air=0) + ['lowpass=f=4200'] + room([90, 190], [0.18, 0.1])),
+    'THE COLD': dict(voice=('a', 'am_onyx'), speed=0.78, pitch=0.9, chain=LIGHT + ['lowpass=f=4500'] + room([70, 140], [0.12, 0.07])),
     # A boy of fourteen, heard through forty-four winters of water.
-    'FELIKS': dict(voice='en_US-ryan-high', length=1.1, pitch=1.2, formant='shifted',
-                   chain=['highpass=f=120', 'lowpass=f=2600', 'vibrato=f=3.5:d=0.06',
-                          'acompressor=threshold=-22dB:ratio=3:attack=5:release=150:makeup=2'] + room([90, 180, 310], [0.3, 0.2, 0.1], 0.8, 0.65)),
+    'FELIKS': dict(voice=('a', 'am_puck'), speed=0.95, pitch=1.12, formant='shifted',
+                   chain=['highpass=f=110', 'lowpass=f=3200', 'vibrato=f=3.5:d=0.04',
+                          'acompressor=threshold=-22dB:ratio=2.5:attack=6:release=160:makeup=2'] + room([80, 170], [0.2, 0.1])),
     # The drowned Warden, speaking out of the ice-hum.
-    'SARRE': dict(voice='en_GB-northern_english_male-medium', length=1.12, pitch=0.9,
-                  chain=grain(6, chest=5, presence=3, air=0) + ['lowpass=f=4000'] + room([70, 150, 240], [0.28, 0.18, 0.1], 0.8, 0.65)),
+    'SARRE': dict(voice=('b', 'bm_george'), speed=0.9, pitch=0.9, chain=LIGHT + ['lowpass=f=5000'] + room([60, 130], [0.14, 0.08])),
     # A kitchen forty-four years ago.
-    'YOUR MOTHER': dict(voice='en_GB-cori-medium', length=1.05, pitch=0.96,
-                        chain=['highpass=f=90', 'lowpass=f=5200', 'equalizer=f=250:t=q:w=1:g=2',
-                               'acompressor=threshold=-22dB:ratio=3:attack=5:release=150:makeup=2'] + room([40, 85], [0.2, 0.12])),
+    'YOUR MOTHER': dict(voice=('b', 'bf_emma'), speed=0.95, pitch=1.0, chain=['highpass=f=90', 'equalizer=f=250:t=q:w=1:g=1.5',
+                        'acompressor=threshold=-22dB:ratio=2.5:attack=6:release=160:makeup=2'] + room([30, 60], [0.08, 0.05])),
+}
+
+# The invented names of Aubade, spelled for the phonemiser.
+NAMES = {
+    'Sarre': 'sˈɑːɹə', 'Aino': 'ˈInQ', 'Ilse': 'ˈɪlsə', 'Odile': 'Qdˈiːl', 'Castellane': 'kˌastəlˈɑːn',
+    'Aubade': 'Qbˈɑːd', 'Rime': 'ɹˈIm', 'Tuula': 'tˈuːlə', 'Ailo': 'ˈIlQ', 'Marta': 'mˈɑːtə',
 }
 
 
@@ -99,35 +102,39 @@ def profile_for(line):
 
 def key_of(line):
     prof = profile_for(line)
-    sig = json.dumps([line['text'], prof['voice'], prof['length'], prof['pitch'], prof.get('formant'), prof['chain']])
+    sig = json.dumps(['kokoro1', line['text'], prof['voice'], prof['speed'], prof['pitch'], prof.get('formant'), prof['chain'], NAMES])
     return hashlib.sha1(sig.encode()).hexdigest()[:16]
 
 
-_voices = {}
+def prepare_text(t):
+    # keep the dashes and ellipses: they are the intonation. Names get their phonemes.
+    t = t.replace(' ... ', ' — ').replace(', ,', ',')
+    for n, ph in NAMES.items():
+        t = re.sub(r'\b%s\b' % n, '[%s](/%s/)' % (n, ph), t)
+    return t
 
 
-def piper_voice(name, voices_dir):
-    if name not in _voices:
-        from piper import PiperVoice
-        _voices[name] = PiperVoice.load(os.path.join(voices_dir, name + '.onnx'))
-    return _voices[name]
+_pipes, _voices = {}, {}
 
 
 def synth(line, voices_dir, raw_path):
-    from piper import SynthesisConfig
+    import soundfile as sf
+    from kokoro import KPipeline
     prof = profile_for(line)
-    v = piper_voice(prof['voice'], voices_dir)
-    cfg = SynthesisConfig(length_scale=prof['length'], noise_scale=0.6, noise_w_scale=0.7)
-    with wave.open(raw_path, 'wb') as w:
-        v.synthesize_wav(line['text'], w, syn_config=cfg)
+    lang, name = prof['voice']
+    if lang not in _pipes:
+        _pipes[lang] = KPipeline(lang_code=lang, repo_id='hexgrad/Kokoro-82M')
+    audio = [a.numpy() for _, _, a in _pipes[lang](prepare_text(line['text']), voice=name, speed=prof['speed'])]
+    sf.write(raw_path, np.concatenate(audio) if audio else np.zeros(2400, dtype=np.float32), 24000, subtype='PCM_16')
 
 
 def process(line, raw_path, out_path):
     prof = profile_for(line)
-    chain = ['aresample=44100',
-             'rubberband=pitch=%g:formant=%s:pitchq=quality:transients=smooth' % (prof['pitch'], prof.get('formant', 'preserved'))]
+    chain = []
+    if prof['pitch'] != 1.0:
+        chain += ['aresample=44100', 'rubberband=pitch=%g:formant=%s:pitchq=quality' % (prof['pitch'], prof.get('formant', 'preserved'))]
     chain += prof['chain']
-    chain += ['apad=pad_dur=0.6', 'loudnorm=I=-17:TP=-2:LRA=9', 'aresample=%d' % RATE, 'silenceremove=stop_periods=-1:stop_duration=0.5:stop_threshold=-55dB']
+    chain += ['apad=pad_dur=0.6', 'loudnorm=I=-17:TP=-2:LRA=11', 'aresample=%d' % RATE, 'silenceremove=stop_periods=-1:stop_duration=0.5:stop_threshold=-55dB']
     cmd = [FFMPEG, '-hide_banner', '-loglevel', 'error', '-y', '-i', raw_path, '-af', ','.join(chain), '-ac', '1', '-ar', str(RATE), '-c:a', 'pcm_s16le', out_path]
     subprocess.run(cmd, check=True)
 
@@ -171,7 +178,7 @@ def main():
             todo.append(l)
         keys.add(k)
     print('%d lines, %d to render' % (len(lines), len(todo)), flush=True)
-    for i, l in enumerate(sorted(todo, key=lambda l: profile_for(l)['voice'])):
+    for i, l in enumerate(sorted(todo, key=lambda l: str(profile_for(l)['voice']))):
         if not os.path.exists(l['raw']):
             synth(l, voices_dir, l['raw'])
         if (i + 1) % 50 == 0:

@@ -47,7 +47,7 @@ tools/validate.js     vérifie le script et simule des milliers de parties
 tools/smoke.js        joue la vraie page dans Chromium avec des choix aléatoires
 tools/build.js        produit dist/candle-ice.html (fichier unique)
 tools/dump_lines.js   liste les répliques à doubler, avec leur empreinte
-tools/voices.py       génère les voix (Piper TTS + traitement ffmpeg)
+tools/voices.py       génère les voix (Kokoro TTS + léger traitement ffmpeg)
 DESIGN.md             recherches sur Disco Elysium et notes de conception
 ```
 
@@ -61,16 +61,23 @@ node tools/smoke.js        # nécessite Playwright
 
 ### Régénérer les voix
 
-Les voix sont produites hors ligne par un synthétiseur neuronal libre ([Piper](https://github.com/rhasspy/piper), voix *ryan-high*), puis traitées avec ffmpeg : hauteur abaissée en conservant les formants (rubberband), saturation douce pour le grain, égalisation de poitrine, forte présence dans les aigus pour que les consonnes passent au-dessus de la musique, compression, un souffle de pièce. Chaque attribut a sa couleur (Reason nette, Soul plus lente, Flesh la plus grave et la plus granuleuse, Nerve précise), et chaque mort a son traitement (Feliks entendu à travers l'eau, le Gardien depuis la glace).
+Les voix sont produites hors ligne par **Kokoro-82M** (modèle libre, licence Apache 2.0), dont l'intonation suit le sens de la phrase entière : une seule voix de narrateur britannique grave (*Lewis*) pour les seize compétences, comme dans *Disco Elysium* où un seul comédien les joue toutes, avec un tempo propre à chaque attribut (Soul plus lente, Nerve plus vive). Le traitement est volontairement minimal : un demi-ton plus bas en conservant les formants, un peu de poitrine, une compression douce, **aucune réverbération ni saturation**. La ponctuation expressive (tirets, points de suspension) est conservée, et les noms inventés (Sarre, Aino, Odile, Aubade…) ont une prononciation imposée. Les morts ont leurs propres voix et leur « pièce » (Feliks à travers l'eau, le Gardien dans la glace, le Froid).
 
-L'intelligibilité a été **mesurée** et non devinée : un modèle de reconnaissance vocale (Whisper) transcrit un échantillon fixe de répliques, et on compte les mots mal reconnus. La première version (voix *norman*, traitement très rauque) en perdait environ 20 %, et « The Cold » était incompréhensible ; la version actuelle en perd environ 6 %.
+Le choix a été **mesuré** et non deviné, sur les mêmes répliques :
+
+| moteur | naturel prédit (MOS /5, torchaudio SQUIM) | mots mal reconnus (Whisper) |
+|---|---|---|
+| Piper, première version très rauque | — | ≈ 20 % |
+| Piper, version claire | ≈ 3,8 | ≈ 6 % |
+| Chatterbox (clonage d'une voix grave) | ≈ 4,3 | ≈ 0 % |
+| **Kokoro, voix Lewis (actuelle)** | **≈ 4,5** | **≈ 0 %** |
+
+On a aussi constaté que la réverbération et la saturation faisaient baisser la note de naturel : c'est pour cela que le grain « rauque » vient de la voix elle-même et non d'effets.
 
 ```sh
-pip install piper-tts numpy imageio-ffmpeg
-# voix Piper : en_US-ryan-high,
-#              en_GB-northern_english_male-medium, en_GB-cori-medium  (dans /tmp/piper)
+python3 -m venv /opt/tts && /opt/tts/bin/pip install kokoro soundfile numpy imageio-ffmpeg
 node tools/dump_lines.js > /tmp/lines.json
-python3 tools/voices.py /tmp/lines.json
+/opt/tts/bin/python tools/voices.py /tmp/lines.json
 ```
 
 Le moteur retrouve chaque voix par une empreinte du texte : si tu modifies une réplique, relance ces deux commandes (seules les répliques changées sont re-synthétisées).
