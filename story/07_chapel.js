@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music interior
 @title CHAPEL OF SAINT ONDINE OF THE FLOE
 @if seen("cp_enter") > 1
-@time 20
+@time 15
 => cp_return
 @endif
-@time 30
+@time 25
 > A great tent of oiled canvas, stitched in panels, stained by forty winters of smoke to the colour of strong tea. Inside, a thousand small flames: candles in tin cups, lamps in jars, tapers stuck in the ice itself, every one of them burning for somebody. The air is warm and smells of tallow and wet wool.
 UNDERTOW: A thousand lanterns being carried across a dark water. Look how slowly they go.
 ARCHIVE: The Lanternist rite. Each soul a flame, carried across the dark water to the Far Shore. The Glass keeps its chapel lit day and night through the winter, because the Rime-folk say that ice is where the dark water comes closest to the surface.
@@ -34,6 +34,7 @@ HESPER: "Back again. Sit, sit."
 + {body_cut && !seen("cp_body")} [Examine the body.] -> cp_body
 + {body_carpet && !seen("cp_fetch")} "He's still out there, under the carpet." -> cp_fetch
 + {knows_rescue && !lit_feliks} "Deaconess. Can a lantern be lit for someone forty-four years late?" -> cp_feliks
++ {!seen("cp_ondine")} "Who was Saint Ondine?" -> cp_ondine
 + [Leave the chapel.] -> hub2
 
 == cp_sarre

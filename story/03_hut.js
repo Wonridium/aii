@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music interior
 @title THE WARDEN'S HUT
 @if seen("hut_enter") > 1
-@time 20
+@time 15
 => hut_return
 @endif
-@time 30
+@time 25
 > The Warden's hut stands at the very edge of the Glass, where the lanterns give out and the Basin goes on into the dark without them. It is on runners, like every house here: a box of tarred planks with a stovepipe, and a rack of flags outside — blue, red, blue, red — furled like umbrellas in a hall.
 > There is smoke coming from the stovepipe.
 HACKLES: Someone is inside. Someone has been inside all day, with the door shut, while a whole town stood and looked at the Warden's face.
@@ -134,6 +134,9 @@ AINO: "I know what you've come about." She does not lower the chisel. "Ask your 
 + {!seen("hut_asked")} "He asked the Office for me by name. Do you know why?" -> hut_asked
 + {seen("hut_coil") && !knows_rope} "The other end of the rope is here. Who was holding it, Aino?" -> hut_rope_ask
 + {knows_rope && !seen("hut_warden")} "You're the Warden now." -> hut_warden
++ {sarre_towel && !gave_towel} [Give her the Warden's towel.] -> hut_towel
++ {!seen("hut_teach")} "Teach me to listen to the ice." -> hut_teach
++ {aino >= 2 && !seen("hut_mother")} "Where are your parents, Aino?" -> hut_mother
 + [Leave her be, for now.] -> hut_leave
 
 == hut_sorry

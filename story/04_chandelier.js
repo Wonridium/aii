@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music glass
 @title THE CHANDELIER
 @if seen("ch_enter") > 1
-@time 20
+@time 15
 => ch_return
 @endif
-@time 30
+@time 25
 > Inside, the Chandelier is a cathedral built by people who had never been allowed into one. A long hall of varnished timber, red plush along the walls, a sprung dance floor laid over the ice on a thousand short stilts. Waiters in white jackets polish glasses. Garlands of paper roses go up on poles.
 > And above it all, the chandelier: a haywain of crystal and brass, hundreds of candles, and hung among the drops of cut glass — so you have to look twice to be sure — real icicles, long as a forearm, catching the light and dripping, very slowly, onto the floor below.
 BAROMETER: They are dripping. Icicles do not drip at this hour in Deepwinter. The room is too warm, and the ice under the floor is warmer than it has any right to be.
@@ -30,6 +30,7 @@ WAITER: "Madame is in the gallery, Examiner." He points upward with a polishing 
 + [Go up to the gallery.] -> ch_odile_up
 + {!seen("ch_benny")} [The old man with the accordion.] -> ch_benny
 + {!seen("ch_bar")} [The bar. It smells of cloves and hot wine.] -> ch_bar
++ {met_benny && !seen("ch_benny_song")} [Ask Benny to play you something.] -> ch_benny_song
 + [Leave the Chandelier.] -> hub2
 
 == ch_bar
@@ -115,6 +116,7 @@ ODILE: "Of course you did." She turns. "Sit down, Examiner. You're making the ro
 + {!seen("ch_o_money")} "What happens if there's no Ball tonight?" -> ch_o_money
 + {!f_odile} "Cancel the Ball, Madame." -> ch_o_cancel
 + {!danced && !seen("ch_o_dance_f")} [DECORUM 11] "Madame. The band is playing. Would you do me the honour?" -> ch_o_dance | ch_o_dance_f
++ {!seen("ch_o_icicles")} "Why are there real icicles in your chandelier?" -> ch_o_icicles
 + [Take your leave.] -> ch_floor
 
 == ch_o_sarre

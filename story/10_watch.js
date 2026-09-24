@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music interior
 @title THE GLASS WATCH-HOUSE
 @if seen("wa_enter") > 1
-@time 20
+@time 15
 => wa_return
 @endif
-@time 30
+@time 25
 > A hut the size of a large wardrobe, with a bell on the roof and a sign over the door — GLASS WATCH — painted by someone who ran out of room for the H and had to make it small. Inside: a cot, a stove, a desk, a rack with one truncheon in it, and on the wall, in a gilt frame, a portrait of the Hearth-King in his fur crown, gazing mildly into the middle distance.
 > On the desk, face down and much-thumbed, lies a copy of *The Examiner's Handbook (Revised)*.
 PIM: He is at the stove, making tea in a saucepan. He turns so fast he nearly throws it. "Sir! You came to the — sir! Sit, sir, there's only the cot, I'm sorry, sit on the cot—"
@@ -28,6 +28,7 @@ PIM: "Sir!" He is on his feet before you are through the door. "Is there anythin
 + {!seen("wa_bell")} "The Warden told you to ring the bell. You said you needed a reason." -> wa_bell
 + {!seen("wa_king")} [Look at the portrait of the Hearth-King.] -> wa_king
 + {(has_log || knows_candle || proof_fist) && !pim_ready} "If the ice goes tonight, I'll need you." -> wa_need
++ {!seen("wa_quiz")} [Pim is holding the Handbook out to you, hopefully.] -> wa_quiz
 + [Leave the watch-house.] -> hub2
 
 == wa_tea

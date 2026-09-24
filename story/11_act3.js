@@ -37,7 +37,7 @@ ILSE: Beside you, very quietly: "Examiner." She has not opened the notebook. "Wh
 @music glass
 @weather mild
 @title THE GLASS — THE MILD
-@if time >= t("03:00")
+@if time >= t("03:20")
 > The ice is singing without pause now, a continuous high keening from every direction. You have run out of time to do anything but the one thing.
 => ad_start
 @endif
@@ -57,6 +57,10 @@ BAROMETER: The Glass is groaning between songs — long low sounds, like a ship'
 + {!f_pim && !pim_refused} [The watch-house.] -> a3_pim
 + {!f_quell && !quell_refused} [Across the ice to the Cold Works.] -> a3_quell
 + {knows_ilse_mother && !marta_safe && !marta_refused} [Needle Row. Ilse's mother.] -> a3_marta
++ {!seen("a3_ball")} [Walk through the Ball.] -> a3_ball
++ {seen("fi_enter") && !tomasz_moved && !tomasz_stays} [Tomasz, still on his stool on the seam.] -> a3_tomasz
++ {gull_runner && !gull_used} [Send Gull running with a message.] -> a3_gull
++ [Sit on the bench for a moment, and listen to yourself.] -> bench_enter
 + {!ilse_stays} [Talk to Ilse.] -> il_talk
 + [Take the bandstand at the Chandelier. Close the Glass.] -> ad_start
 

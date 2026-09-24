@@ -10,7 +10,7 @@
   function load(key) { try { var s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
   function drop(key) { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } }
 
-  var settings = Object.assign({ pace: 'flow', sound: false }, load(SET_KEY) || {});
+  var settings = Object.assign({ pace: 'flow', sound: false, gfx: '3d', voice: 'inner', vol: 0.8 }, load(SET_KEY) || {});
 
   // ---------------------------------------------------------------- parse
   var parsed = C.parser.parse(C.sources, { skills: C.SKILLS, speakers: C.SPEAKERS });
@@ -408,10 +408,26 @@
 
   // ---------------------------------------------------------------- scenes
   var bgKey = null;
+  var use3d = false;
+  function paintScene(key) {
+    if (use3d && C.scene3d && C.scene3d.ok) C.scene3d.show(key, S ? S.v : {});
+    else if (C.painter) C.painter.show(key);
+  }
   function setBg(key) {
     if (key === bgKey) return;
     bgKey = key;
-    if (C.painter) C.painter.show(key);
+    paintScene(key);
+    if (C.audio && C.audio.scene) C.audio.scene(key, S ? S.v : {});
+  }
+  function setGraphics(mode) {
+    settings.gfx = mode;
+    store(SET_KEY, settings);
+    var want3d = mode === '3d' && C.scene3d;
+    if (want3d && !C.scene3d.ok) want3d = C.scene3d.init($('view3d'));
+    use3d = !!want3d;
+    $('view3d').hidden = !use3d;
+    $('paintA').hidden = $('paintB').hidden = use3d;
+    if (bgKey) paintScene(bgKey);
   }
 
   // ---------------------------------------------------------------- running nodes
@@ -927,8 +943,9 @@
     window.dispatchEvent(new Event('resize'));
     var has = !!load(SAVE_KEY);
     $('btnContinue').hidden = !has;
-    if (C.painter) C.painter.show('title');
     bgKey = 'title';
+    paintScene('title');
+    if (C.audio && C.audio.scene) C.audio.scene('title', {});
     requestAnimationFrame(function () { t.classList.add('on'); });
   }
   function hideTitle() {
@@ -986,6 +1003,8 @@
     choicesEl = $('choices');
     stage = $('stage');
     if (C.painter) C.painter.init($('paintA'), $('paintB'));
+    if (C.scene3d) C.scene3d.onlost = function () { setGraphics('2d'); };
+    setGraphics(settings.gfx || '3d');
     if (C.weather) C.weather.init($('weather'));
     document.addEventListener('keydown', onKey);
     $('scroll').addEventListener('click', function (e) {

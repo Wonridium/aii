@@ -658,6 +658,11 @@
     }
   };
   SCENES.letter = SCENES.shore;
+  SCENES.fisher = SCENES.glass;
+  SCENES.bath = SCENES.hut;
+  SCENES.gull = SCENES.gate;
+  SCENES.bench = SCENES.crossing;
+  SCENES.kitchen = SCENES.mending;
 
   // ------------------------------------------------------------ display
   var canvases = [], front = 0, cache = {}, cacheOrder = [];

@@ -61,6 +61,14 @@
     FISHWIFE: { name: 'A FISHWIFE' },
     WAITER: { name: 'A WAITER' },
     DANCER: { name: 'A DANCER' },
+    LOTTE: { name: 'LOTTE' },
+    FENWICK: { name: 'FENWICK' },
+    TOMASZ: { name: 'TOMASZ WICK' },
+    SAARI: { name: 'MA SAARI' },
+    OSKAR: { name: 'OSKAR' },
+    IB: { name: 'GRANDFATHER IB' },
+    DAGNY: { name: 'DAGNY' },
+    'YOUR MOTHER': { name: 'YOUR MOTHER', cls: 'mother' },
     SARRE: { name: 'AILO SARRE' },
     'THE COLD': { name: 'THE COLD', cls: 'cold' },
     FELIKS: { name: 'FELIKS', cls: 'feliks' },
@@ -150,6 +158,24 @@
       problem: 'Misadventure. Self-inflicted. Unlawful killing. Open. Four categories to hold every death in Aubade, like four drawers in a morgue. What do you do with a death that will not fit a drawer? Cut it until it fits? Or build a fifth?',
       solution: 'The categories were written by men who wanted to know who pays. They are good categories for that. They are the finest instrument ever built for answering who pays.\n\nBut the dead ask another question, and it is not who pays. It is: what was it for? No drawer holds that. So you will write it on the outside of the cabinet, in your own hand, and let them try to file it. It may cost you the Bench. You find — and this surprises you — that you would rather lose the Bench than lie to a drowned man about what he died for.'
     }
+  };
+
+  C.THOUGHTS.magistrate = {
+    name: 'The Magistrate',
+    time: 75,
+    during: { HACKLES: -1 },
+    after: { SCRUTINY: 1, KEEL: 1 },
+    problem: 'A pike that has sat in judgment beneath an old man\u2019s fishing hole for eleven winters, taking his hooks, his lures, his spectacles, and never once being moved. Tomasz says the whole art is to become less interesting than the water. Is that what you have been doing, all these years?',
+    solution: 'You have been sitting above the ice for forty-four years with a line down, very still, shoulders rounded against the wind, waiting for something to bite. You told yourself it was patience. It was a way of not having to pull anything up.\n\nThe thing under the ice is not hungry. It never was. It is you who are hungry. Reel in. Look at the bare hook in the lamplight. Say, there you are. Then decide, like an old man on a stool, what is actually worth waiting for.'
+  };
+  C.THOUGHTS.kitchen = {
+    name: 'A Kitchen at Dusk',
+    time: 90,
+    during: { STARCH: -1 },
+    after: { TENDERNESS: 1, UNDERTOW: 1 },
+    moBonus: 1,
+    problem: 'Your mother began a sentence at the kitchen table a week after the Narrows, and never finished it. You have finished it for her every night since, always the same way. What if it had another ending?',
+    solution: 'It should have been dark earlier. It should have been a colder winter. It should have been me at the window sooner. Everyone who was on the ice that night has been finishing the sentence with their own name.\n\nThe Warden thought it was his arm\u2019s length. Your mother thought it was her window. Aino thinks it is her grip. You think it is your dare. It was the ice. It was grey, and posted, and it would have gone under a cat.\n\nNobody is heavy enough to break the ice alone. That is the whole terrible mercy of it.'
   };
 
   C.THOUGHT_SLOTS = 3;

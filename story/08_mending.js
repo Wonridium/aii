@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music interior
 @title NEEDLE ROW — THE MENDER'S STALL
 @if seen("me_enter") > 1
-@time 20
+@time 15
 => me_return
 @endif
-@time 30
+@time 25
 > Needle Row is a lane of stalls between two lines of huts, roofed over with sailcloth so that it's like walking down the inside of a long tent. Tinkers. A knife-grinder. A woman selling hot eels in paper cones. And at the end, a stall hung so thick with coats and jackets and trousers that it looks like a crowd of headless people waiting patiently to be finished.
 ILSE: She stops walking. "I'll wait here, Examiner."
 ?{knows_ilse_mother} TENDERNESS: She said it very evenly. You know exactly why she said it.
@@ -51,6 +51,7 @@ MARTA: "The *less bad* crate."
 + {seen("me_sarre") && !seen("me_night")} "You said you were there. The night he pulled the boy out." -> me_night
 + {(has_log || knows_candle || proof_fist) && !seen("me_leave_ask")} "Madame Varga — if I asked you to leave the ice tonight, would you?" -> me_leave_ask
 + {!seen("me_mend")} [Your coat's lining has been hanging loose since Sturmhaven. She is looking at it.] -> me_mend
++ {!seen("me_fever")} "Tell me about the Glass. The old days." -> me_fever
 + [Take your leave.] -> me_bye
 
 == me_ilse

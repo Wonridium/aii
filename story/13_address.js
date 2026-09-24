@@ -6,7 +6,7 @@ CANDLE.script(String.raw`
 @title THE CHANDELIER — THE BANDSTAND
 @set ad_time = time
 @set proof = proof_fist || proof_under
-@set score = (f_bell ? 2 : 0) + (f_moth ? 1 : 0) + (f_odile ? 1 : 0) + (f_bran ? 1 : 0) + (f_pim ? 1 : 0) + (f_quell ? 1 : 0) + (proof ? 1 : 0) + (quell_diverted ? 1 : 0) + (time <= t("01:20") ? 1 : 0) - (time >= t("02:20") ? 1 : 0)
+@set score = (f_bell ? 2 : 0) + (f_moth ? 1 : 0) + (f_odile ? 1 : 0) + (f_bran ? 1 : 0) + (f_pim ? 1 : 0) + (f_quell ? 1 : 0) + (proof ? 1 : 0) + (quell_diverted ? 1 : 0) + (f_paint && !f_pim ? 1 : 0) + (time <= t("01:20") ? 1 : 0) - (time >= t("02:20") ? 1 : 0)
 > You walk back into the Chandelier through the warm rain, and the ice sings under every step.
 @if f_odile
 > The great hall is half empty. The ones who followed the band to the shore have gone; the ones who stayed are the ones who never follow anything — the young and the stubborn and the very drunk, and the Glass's own people, who came in off the ice when the singing started because the Chandelier was the warmest, brightest place to be frightened in. Three hundred, perhaps. Dancing, still, because the trumpet player stayed.
@@ -23,6 +23,9 @@ CANDLE.script(String.raw`
 @endif
 @if f_moth
 > In the doorway, a thin man in a good grey coat unfolds a sheet of cream notepaper and reads it aloud in a voice that is quiet and very clear and carries to every corner: *"The Great Mutual withdraws all cover from any policyholder remaining on the ice after one o'clock."* All over the hall people are taking out their papers and looking at the backs of them.
+@endif
+@if f_paint
+> And on the ice outside, all along the Warden's blue-flag line from the Chandelier's doors to the shore, somebody has painted enormous red arrows on white, two metres long, still wet, gleaming in the lantern light. A drunk could follow them with his eyes shut.
 @endif
 @if ilse_stays
 > Ilse is not at the foot of the bandstand, where she should be, notebook open. She is on Needle Row, with her mother. You are on your own.

@@ -54,6 +54,7 @@ button { font: inherit; color: inherit; }
 }
 #stage canvas.on { opacity: 1; }
 #stage #weather { opacity: 1; pointer-events: none; }
+#stage #view3d { transition: opacity 0.45s ease; }
 #flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
 #flash.on { animation: flash 900ms ease-out; }
 #flash.hurt { background: radial-gradient(circle, transparent 30%, rgba(200, 40, 50, 0.55)); }
@@ -154,6 +155,8 @@ button { font: inherit; color: inherit; }
 .cold .tx { color: var(--frost); font-style: italic; }
 .feliks .spk { color: var(--feliks); }
 .feliks .tx { color: #f3ead2; }
+.mother .spk { color: #e8c9a8; }
+.mother .tx { color: #f1e2cf; }
 .doc p {
   background: var(--paper); color: var(--paper-ink);
   font-family: 'IM Fell English', Georgia, serif; font-size: 1.02em; line-height: 1.55;

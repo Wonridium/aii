@@ -176,6 +176,18 @@ UNDERTOW: *...All right.* No reproach in it. Only patience, forty-four years of 
 > *Brannock Kell* and Local Nine {?f_bran|were on the ice when it went, all forty of them, and are the reason the count was not worse|watched from the shore, and have never forgiven themselves, and never will}. There are thirty-eight of them now. They still sing the Song of the Saw. There is a new verse.
 > *Perrin Moth* {?f_moth|was reprimanded by the Great Mutual for withdrawing cover from six and a half million crowns without a board resolution, and promoted the following month for having saved it|went on asking the Tables things}. He made one more clerical error that year, and then no more.
 > *Pim Vandersloot* failed the Examiners' Board again in spring. {?f_pim|He was made Constable of the Glass for life instead, which was what he had wanted all along without knowing it. The Break Bell hangs in the watch-house, polished, and has not needed to ring again.|He is still a constable on the Glass. He sleeps very lightly now.}
+@if seen("gu_enter")
+> *Gull* became the first apprentice to the new Warden of the Glass. He is eleven now. He can hear the ice laughing. He says he could always hear it, and was only being polite.
+@endif
+@if seen("fi_enter") && tomasz_moved
+> *Tomasz Wick* cut a new hole the following winter, a long way from any seam, with a Warden's blue flag beside it. He has not yet caught anything. He has never been happier. Perrin Moth visits him on Sundays and they sit, not speaking, like two men at a very slow play.
+@elif seen("fi_enter")
+> *Tomasz Wick* was brought in on a floe at a quarter past five, still on his stool, still holding his rod, with the line snapped clean. He maintains to this day that the Magistrate bit at the very end, and swam out to sea, and is free. Nobody has the heart to argue. Perrin Moth visits him on Sundays.
+@endif
+@if seen("ba_enter")
+> *Saari's Steam* was rebuilt on the shore below the Customs House, and the Parliament of the Steam sits there still, in towels, and has not yet reached a verdict.
+?{f_paint} > *Dagny* painted her red arrows along the Warden's blue line again the next winter, and the winter after, by request. The Mutual pays her for it. She has not yet decided how she feels about that.
+@endif
 > *Deaconess Hesper* is still on the Glass, on her stool, with her tea. She has been given forty-two fish.
 @if !(met_marta || knows_ilse_mother)
 @elif ilse_hurt
@@ -187,6 +199,7 @@ UNDERTOW: *...All right.* No reproach in it. Only patience, forty-four years of 
 @endif
 @if ilse >= 4
 > *Ilse Varga* remained the clerk of the Third Bench. That spring she began, in the evenings, to write something that was not a record. She has not said what. It is not entered.
+?{ilse_card} > She opened one of her father's cards. One. What it said is not entered either.
 @elif ilse >= 2
 > *Ilse Varga* remained the clerk of the Third Bench. She types your Last Lines. Once, in autumn, she left a thaw-cake on your desk, wrapped in greaseproof paper, and neither of you mentioned it.
 @else
@@ -198,6 +211,9 @@ UNDERTOW: *...All right.* No reproach in it. Only patience, forty-four years of 
 > *Aurel Marrow* returned to the Third Bench. The Superintendent called it the cleanest inquest he had ever read. It was. You felt almost nothing, writing it. That was the price, and you had decided it was fair.
 @else
 > *Aurel Marrow* returned to the Third Bench. The Superintendent called it a clean inquest. It was not. It was a great deal better than that.
+@endif
+@if knows_teapot && thaw >= 3
+> On the first Monday after, he went down to the lost-property cupboard on the third floor of the Office, signed for docket twenty-one-oh-six, and carried a brown teapot with a chipped spout home under his arm through the upper town. That evening he wrote a letter three lines long. It is not entered to whom.
 @endif
 @if thaw >= 5
 > He gave up the very clean apartment in the upper town and took two rooms over a chandler's on the harbor front, with a window on the Basin. In Deepwinter, when the Warden says the ice is good, he walks across it — slowly, the straight way, listening. It sings low.

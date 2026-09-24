@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music interior
 @title THE CUTTERS' HALL — LOCAL NINE
 @if seen("cu_enter") > 1
-@time 20
+@time 15
 => cu_return
 @endif
-@time 30
+@time 25
 > A long shed on runners, walls of raw plank. Along them, hung on pegs like the jawbones of whales, the great two-handled saws of the ice trade — some taller than a man, their teeth filed bright. Braziers glow at either end. Thirty men with red faces and wet wool steaming off their shoulders sit on crates and benches, and they are singing.
 > Painted on the far wall in tall red letters, and painted over in grey, and painted again in red, so that the word has the look of a scar that keeps reopening: UNPRICED.
 DOC: *Pull, boy, and let him pull — / never push the steel; / the sea lies down in Deepwinter / and we're the ones who kneel. / One block for the brewer, / one block for the Crown, / one for the man who won't come up / when the Basin lets him down.*
@@ -37,6 +37,7 @@ BRAN: "Examiner."
 + {!seen("cu_night")} "Did anyone see anything last night?" -> cu_night
 + {!seen("cu_block_ok") && !seen("cu_block_f")} [Look at the block of ice on the trestle by the door.] -> cu_block
 + {(has_log || knows_candle || clue("soft_cut")) && !bran_promised} "If the ice goes tonight, will your men help get people off it?" -> cu_help
++ {!seen("cu_strike")} "Tell me about the Long Strike." -> cu_strike
 + [Leave the hall.] -> hub2
 
 == cu_sarre

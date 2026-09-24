@@ -49,7 +49,7 @@ UNDERTOW: There it goes. Across the dark water. Somebody's carrying it.
 @elif !f_odile
 > At the last moment — people will argue for years about who saw it — Odile Castellane came down the gallery stair and walked out of her Chandelier through the side door, not hurrying, in wine-dark silk, and did not look back once. She was on the blue line when the floor went.
 @endif
-@if knows_lotte && evac < 3
+@if knows_lotte && evac < 3 && !lotte_safe
 > A little girl in a yellow ribbon is carried up the shore by a young cutter called Tammas, wet to the waist, crying for her aunt. Her aunt is behind them. Both of them are alive.
 @endif
 @if knows_ilse_mother && !marta_safe && !ilse_stays
@@ -86,6 +86,9 @@ UNDERTOW: Two men, then. Two men you never got to bury.
 + {!seen("a4_hesper")} [The Deaconess has set a single lamp on the shingle.] -> a4_hesper
 + {!seen("a4_quell") && f_quell} [Tobias Quell is standing in the doorway of the engine hall.] -> a4_quell
 + {!seen("a4_marta") && (marta_safe || ilse_hurt)} [Marta Varga has set up a mending station on an upturned boat.] -> a4_marta
++ {seen("gu_enter") && !seen("a4_gull")} [Gull has set up his brazier on the shingle.] -> a4_gull
++ {seen("fi_enter") && !seen("a4_tomasz")} [{?tomasz_moved|Tomasz Wick is sitting on his stool on the Customs House steps.|The cutters are bringing something in on a floe.}] -> a4_tomasz
++ {seen("ba_enter") && !seen("a4_saari")} [A tent of sailcloth, breathing steam, on the shingle.] -> a4_saari
 + [Aino is standing at the water's edge, alone, with a folded paper in her hand.] -> a4_aino
 
 == a4_odile

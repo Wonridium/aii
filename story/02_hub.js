@@ -1,7 +1,7 @@
 CANDLE.script(String.raw`
 == a2_start
 @act "ACT TWO" "The Hours Before the Ball"
-@clock 21:00
+@clock 20:40
 @checkpoint
 > The Glass at night is a town holding its breath and pretending it isn't. Stovepipes smoke. Someone is frying onions. Somewhere a band is tuning up, one string at a time, as if each note had to be coaxed out onto the ice.
 ILSE: "Three hours until midnight." She has her pencil out. "The Office recommends the Examiner begin with the place of death. The Office also recommends a hot meal and eight hours' sleep, so."
@@ -13,7 +13,7 @@ ILSE: "Three hours until midnight." She has her pencil out. "The Office recommen
 @music glass
 @title THE GLASS
 @weather snow
-@if time >= t("23:45")
+@if time >= t("23:50")
 > Across the Basin, the city's bells begin to count toward midnight.
 => a2_midnight
 @endif
@@ -33,6 +33,10 @@ BAROMETER: There. South, far off: a breath of air that smells of wet earth and o
 + [{?seen("me_enter")|Go back to Needle Row.|A mending stall on Needle Row. Ilse keeps not looking at it.}] -> me_enter
 + [{?seen("bo_enter")|Go back to the Mutual's booth.|A small green booth with a brass plate: THE GREAT MUTUAL.}] -> bo_enter
 + [{?seen("wa_enter")|Go back to the watch-house.|The watch-house, with a bell on its roof.}] -> wa_enter
++ [{?seen("fi_enter")|Go back to the Magistrate's Hole.|A windbreak far out on the north side, where an old man is fishing.}] -> fi_enter
++ [{?seen("ba_enter")|Go back to the bathhouse.|A bathhouse, half sunk in snow, breathing steam.}] -> ba_enter
++ [{?seen("gu_enter")|Go back to the chestnut brazier.|A chestnut brazier on the corner of Needle Row.}] -> gu_enter
++ [Sit down on the bench at the edge of the lanterns, and listen to yourself.] -> bench_enter
 + [Talk to Ilse.] -> il_talk
 + {time >= t("23:00")} [It is nearly midnight. Go to the Chandelier for the Ball.] -> a2_midnight
 
@@ -53,6 +57,14 @@ ILSE: "Examiner."
 * {knows_rescue} "The Warden pulled me out of the Basin when I was twelve." -> il_rescue
 * [TENDERNESS 10] "Why did you take this assignment?" -> il_why | il_why_f
 * {(seen("hut_log") || knows_rope || seen("cp_body")) && !known("fifth")} "Have you ever wanted to write a line that isn't one of the four?" -> il_fifth
+* "Why do you cut the fingertips off your gloves?" -> il_gloves
+* "Tell me about the Superintendent." -> il_super
+* {knows_ilse_past} "Your mother says your father sends cards." -> il_father
+* {seen("me_ilse")} "Do you still write? Your mother said—" -> il_write
+* {knows_rope || act3} "What Last Line would you write, Ilse?" -> il_verdict
+* {act3} "Are you afraid?" -> il_afraid
+* {seen("bv_tenderness")} "Did you ever meet Clara?" -> il_clara
+* {ilse >= 1} "Why do you put up with me?" -> il_why_me
 + {!act3} [Leave it.] -> hub2
 + {act3} [Leave it.] -> hub3
 
@@ -258,5 +270,5 @@ UNDERTOW: Because a man cut his own rope tonight, and none of the four drawers h
 @bg glass
 > Midnight comes across the Basin from the city in a long procession of bells — cathedral first, then the Customs House, then a scatter of small parish bells arriving late and out of breath, like guests.
 > On the Glass, every lantern seems to lean toward the Chandelier. The doors of the great pavilion are open. The band has stopped tuning and started playing.
-=> a3_start
+=> dr_start
 `);

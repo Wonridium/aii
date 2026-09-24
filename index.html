@@ -16,6 +16,7 @@
   <section id="stage" aria-label="Scene">
     <canvas id="paintA" aria-hidden="true"></canvas>
     <canvas id="paintB" aria-hidden="true"></canvas>
+    <canvas id="view3d" aria-hidden="true"></canvas>
     <canvas id="weather" aria-hidden="true"></canvas>
     <div id="flash"></div>
     <div id="loc"><span id="locName"></span><span id="clock"></span></div>
@@ -63,9 +64,12 @@
 <div id="endcard" hidden></div>
 <!--/BODY-->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE || document.write('<script src="js/vendor/three.min.js"><\/script>');</script>
 <script src="js/data.js"></script>
 <script src="js/parser.js"></script>
 <script src="js/painter.js"></script>
+<script src="js/scene3d.js"></script>
 <script src="js/audio.js"></script>
 <script src="story/00_prologue.js"></script>
 <script src="story/01_act1.js"></script>
@@ -83,6 +87,13 @@
 <script src="story/13_address.js"></script>
 <script src="story/14_act4.js"></script>
 <script src="story/15_ending.js"></script>
+<script src="story/16_fisher.js"></script>
+<script src="story/17_bath.js"></script>
+<script src="story/18_gull.js"></script>
+<script src="story/19_bench.js"></script>
+<script src="story/20_dream.js"></script>
+<script src="story/21_ilse.js"></script>
+<script src="story/22_extras.js"></script>
 <script src="js/engine.js"></script>
 </body>
 </html>

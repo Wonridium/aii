@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music wind
 @title THE COLD WORKS — AUBADE COLD & LIGHT CO.
 @if seen("wo_enter") > 1
-@time 30
+@time 25
 => wo_return
 @endif
-@time 45
+@time 40
 > It is a long walk. The lanterns of the Glass fall behind you and the ice becomes a grey field under a grey sky, and your boots are the only sound — your boots, and Ilse's, a half-step behind.
 > Then the shore, and on the shore a brick box three storeys high with a chimney like a raised finger, every window lit a flat white-green. It hums. You feel the hum in your teeth before you hear it.
 BAROMETER: And there — look at the ice. A dark stripe runs out from the foot of the building across the Basin, straight as a ruled line, toward the lights of the Glass. The snow on it has melted. The ice on it is grey and pocked and weeping.
@@ -50,6 +50,7 @@ QUELL: "Examiner."
 + {!seen("wo_q_drawing")} [There are children's drawings pinned inside the booth. Look at them.] -> wo_q_drawing
 + {has_logbook && !quell_diverted && !seen("wo_q_divert_no")} "Can you turn the heat away from the Basin?" -> wo_q_divert
 + {(has_logbook || felt_warm || has_log) && !f_quell} "If the Glass has to come off the ice tonight — where do eleven hundred people go?" -> wo_q_shelter
++ {!seen("wo_q_hilda")} "Why do you talk to the compressor?" -> wo_q_hilda
 + [Leave the Works.] -> wo_leave
 
 == wo_q_who

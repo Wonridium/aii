@@ -4,10 +4,10 @@ CANDLE.script(String.raw`
 @music interior
 @title THE GREAT MUTUAL — GLASS OFFICE (WINTER)
 @if seen("bo_enter") > 1
-@time 20
+@time 15
 => bo_return
 @endif
-@time 30
+@time 25
 > A booth painted the green of a billiard table, no larger than a sentry box, with a brass plate on the door: THE GREAT MUTUAL ASSURANCE — CLAIMS & VALUATIONS — GLASS OFFICE (WINTER). Inside, a stove the size of a hatbox, a kettle, an adding machine with a brass handle, and shelf upon shelf of books bound in green cloth. The Tables.
 > Pinned to the back wall: a long chart, ruled in violet ink. Names down one side. Numbers down the other. Eleven hundred and forty of them.
 @if met_moth
@@ -31,6 +31,8 @@ MOTH: "Examiner." The adding machine's handle comes down, *ka-chunk*. "You've br
 + {knows_mutual_clause && !seen("bo_clause")} "If I close the ice by lawful order, the Mutual pays the businesses." -> bo_clause
 + {!f_moth} "I want the Mutual to withdraw cover from anyone on the ice tonight." -> bo_withdraw
 + {!seen("bo_soft") && !seen("bo_soft_f")} [TENDERNESS 13] "You looked at him, at the scene. Once. Why?" -> bo_soft | bo_soft_f
++ {moth_went_works && !seen("bo_works")} "Gull says you went to the Works two nights ago." -> bo_works
++ {knows_tomasz_moth && !seen("bo_tomasz")} "Tomasz Wick sends word." -> bo_tomasz
 + [Leave the booth.] -> hub2
 
 == bo_how
@@ -113,8 +115,8 @@ MOTH: "Sixty thousand against six and a half million." He watches you. "Bring me
 == bo_withdraw
 MOTH: "Withdraw cover." He sets down the cup. "Do you know what that would mean? Every soul on the Glass would be walking about uninsured. They'd be off the ice in twenty minutes. Not for their lives — for their *numbers*." He almost laughs. "It's the most powerful sentence the Mutual can say. We say it perhaps once a decade."
 MOTH: "I'll need figures."
-* {has_logbook} [LEDGER {11 - (thought("price") ? 2 : 0) - (has_log ? 1 : 0) - (proof_fist ? 1 : 0)}] "Here are your better figures." [Give him Quell's private log.] -> bo_w_yes | bo_w_no
-* {!has_logbook && (has_log || proof_fist)} [LEDGER {14 - (thought("price") ? 2 : 0) - (has_log ? 1 : 0) - (proof_fist ? 1 : 0)}] "Thickness means nothing. The ice is rotten from beneath — here's the Warden's own log." -> bo_w_yes | bo_w_no
+* {has_logbook} [LEDGER {11 - (thought("price") ? 2 : 0) - (has_log ? 1 : 0) - (proof_fist ? 1 : 0) - (moth_guilt ? 1 : 0)}] "Here are your better figures." [Give him Quell's private log.] -> bo_w_yes | bo_w_no
+* {!has_logbook && (has_log || proof_fist)} [LEDGER {14 - (thought("price") ? 2 : 0) - (has_log ? 1 : 0) - (proof_fist ? 1 : 0) - (moth_guilt ? 1 : 0)}] "Thickness means nothing. The ice is rotten from beneath — here's the Warden's own log." -> bo_w_yes | bo_w_no
 * {thought("price")} "Six and a half million crowns on a floor made of sugar, Mr. Moth. Do the arithmetic." -> bo_w_price
 * "Not yet." -> bo_talk
 
