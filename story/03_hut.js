@@ -142,6 +142,7 @@ AINO: "I know what you've come about." She does not lower the chisel. "Ask your 
 + {sarre_towel && !gave_towel} [Give her the Warden's towel.] -> hut_towel
 + {!seen("hut_teach")} "Teach me to listen to the ice." -> hut_teach
 + {aino >= 2 && !seen("hut_mother")} "Where are your parents, Aino?" -> hut_mother
++ {seen("na_cairn") && !seen("hut_narrows")} "Your grandfather kept a light at the Narrows." -> hut_narrows
 + [Leave her be, for now.] -> hut_leave
 
 == hut_sorry

@@ -135,6 +135,7 @@ CONJECTURE: You try to see who built it, and all you can see is a boy in a wet c
 HACKLES: Let it go out. It isn't yours. Nothing out here is yours, except the part of the ice you're standing on, and that isn't yours for long.
 TENDERNESS: He lit it this morning. Somebody should light it tonight.
 + [SLEIGHT 10] [Shield it with your body and relight it with your own matches, in this wind.] -> na_lit_self | na_lit_self_f
++ {has_hesper_jar} [Set the Deaconess's new jar in the hollow, and light it from the old.] -> na_lit_hesper
 + "Ilse. The lantern." -> na_lit_ilse
 + [Let it go out.] -> na_out
 + [Not yet.] -> na_cairn
@@ -156,6 +157,17 @@ ILSE: Without a word, she kneels beside you, opens the little door of the lanter
 @set na_lit_ilse
 @add ilse 1
 @add thaw 1
+=> na_lit_after
+
+== na_lit_hesper
+> You take the old jar out of its hollow — it is warm, and sticky with forty-four winters of wax at the rim — and set the Deaconess's new one in its place. You tip the old flame into the new wick. It takes at once, tall and clean, as if it had been waiting for exactly this.
+> You put the old jar in your coat. You don't decide to. Your hand does it.
+UNDERTOW: Sunday's jar. He'd have come for it tomorrow.
+@set na_lit
+@set kept_old_jar
+@add thaw 2
+@morale 1
+@xp 10
 => na_lit_after
 
 == na_lit_ilse

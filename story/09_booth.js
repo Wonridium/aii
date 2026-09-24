@@ -34,6 +34,7 @@ MOTH: "Examiner." The adding machine's handle comes down, *ka-chunk*. "You've br
 + {!seen("bo_soft") && !seen("bo_soft_f")} [TENDERNESS 13] "You looked at him, at the scene. Once. Why?" -> bo_soft | bo_soft_f
 + {moth_went_works && !seen("bo_works")} "Gull says you went to the Works two nights ago." -> bo_works
 + {knows_tomasz_moth && !seen("bo_tomasz")} "Tomasz Wick sends word." -> bo_tomasz
++ {lamp_bought && !seen("bo_lamp")} "The Works bought tomorrow's Evening Lamp. Does the Mutual buy newspapers too?" -> bo_lamp
 + [Leave the booth.] -> hub2
 
 == bo_how

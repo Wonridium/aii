@@ -29,6 +29,7 @@ PIM: "Sir!" He is on his feet before you are through the door. "Is there anythin
 + {!seen("wa_king")} [Look at the portrait of the Hearth-King.] -> wa_king
 + {(has_log || knows_candle || proof_fist) && !pim_ready} "If the ice goes tonight, I'll need you." -> wa_need
 + {!seen("wa_quiz")} [Pim is holding the Handbook out to you, hopefully.] -> wa_quiz
++ {has_notice && !seen("wa_notice")} [Show Pim the Warden's notice.] -> wa_notice
 + [Leave the watch-house.] -> hub2
 
 == wa_tea

@@ -52,6 +52,7 @@ MARTA: "The *less bad* crate."
 + {(has_log || knows_candle || proof_fist) && !seen("me_leave_ask")} "Madame Varga — if I asked you to leave the ice tonight, would you?" -> me_leave_ask
 + {!seen("me_mend")} [Your coat's lining has been hanging loose since Sturmhaven. She is looking at it.] -> me_mend
 + {!seen("me_fever")} "Tell me about the Glass. The old days." -> me_fever
++ {met_wren && !seen("me_wren")} "Do you know Wren Aske?" -> me_wren
 + [Take your leave.] -> me_bye
 
 == me_ilse

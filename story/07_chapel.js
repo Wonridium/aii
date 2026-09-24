@@ -35,6 +35,7 @@ HESPER: "Back again. Sit, sit."
 + {body_carpet && !seen("cp_fetch")} "He's still out there, under the carpet." -> cp_fetch
 + {knows_rescue && !lit_feliks} "Deaconess. Can a lantern be lit for someone forty-four years late?" -> cp_feliks
 + {!seen("cp_ondine")} "Who was Saint Ondine?" -> cp_ondine
++ {seen("na_cairn") && !seen("cp_narrows")} "There's a jar at the Narrows, in a heap of ice. One of yours." -> cp_narrows
 + [Leave the chapel.] -> hub2
 
 == cp_sarre
