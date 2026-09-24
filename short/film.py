@@ -28,6 +28,7 @@ from engine import (H, P, W, Burst, Xf, bump, circle, clamp, ease_in, ease_in_ou
 from kit import arc, breathe, hop, land, shake  # noqa: E402
 
 from beats import BEAT, DUR, T, b  # noqa: E402
+from cine import caption_y  # noqa: E402
 
 FPS = 60
 SUB = int(os.environ.get("SUB", 5))  # motion-blur sub-frames
@@ -306,6 +307,28 @@ def mug(c, x, y, s=1.0, rot=0.0, t=0.0, steam=1.0):
                 c.drawPath(path, paint(with_alpha(P["white"], 0.25 * (1 - ph) * steam), stroke=5))
 
 
+_fr = random.Random(12)
+FAIRY = [(x, -70 + 45 * math.sin((x + 400) / 2400 * math.pi * 3) ** 2,
+          _fr.choice([hexc("#FFD27A"), hexc("#FF9E7A"), hexc("#FFE9B0")]), _fr.uniform(0, 6))
+         for x in range(-360, 2400, 110)]
+
+
+def fairy_lights(c, t):
+    path = skia.Path()
+    path.moveTo(FAIRY[0][0], FAIRY[0][1] - 12)
+    for (x, y, col, ph) in FAIRY[1:]:
+        path.lineTo(x, y - 12)
+    c.drawPath(path, paint(hexc("#15172A"), stroke=3))
+    for (x, y, col, ph) in FAIRY:
+        circle(c, x, y, 9, col)
+
+
+def drawers(c):
+    for dx in (420, 1180):
+        rrect(c, dx, DESK_Y + 150, 340, 170, 12, mix(DESK_COL, P["slate"], 0.12))
+        rrect(c, dx + 130, DESK_Y + 225, 80, 16, 8, hexc("#C9A36B"))
+
+
 def desk_and_wall(c, t):
     sh = skia.GradientShader.MakeLinear([(0, 0), (0, DESK_Y)], [skia.Color4f(*WALL_TOP).toColor(),
                                                                  skia.Color4f(*WALL_BOT).toColor()])
@@ -323,12 +346,14 @@ def desk_and_wall(c, t):
         rrect(c, bx, 90 - bh, 24, bh, 3, col)
     circle(c, 880, 62, 26, P["olive_lt"])
     rrect(c, 862, 62, 36, 28, 5, P["clay"])
+    fairy_lights(c, t)
     # desk
     c.drawRect(skia.Rect.MakeLTRB(-2000, DESK_Y, 4000, 3000), paint(DESK_COL))
     c.drawRect(skia.Rect.MakeLTRB(-2000, DESK_Y, 4000, DESK_Y + 10), paint(mix(DESK_COL, P["white"], 0.15)))
     for k in range(6):
         yy = DESK_Y + 40 + k * 70
         line(c, -2000, yy, 4000, yy, with_alpha(mix(DESK_COL, P["slate"], 0.3), 0.35), 3)
+    drawers(c)
 
 
 # ---------------------------------------------------------------- motion script
@@ -505,6 +530,29 @@ def camera_at(t):
     return 1.35 - 0.08 * prog(t, T["cut_end"], 2.5), 560, 470
 
 
+def camera_v(t):
+    """Hand-tuned 9:16 framing (same cuts, tighter on the action)."""
+    z, cx, cy = camera_at(t)
+    if t < T["cut_close"]:
+        k = ease_in_out(prog(t, T["fail"], 0.5))
+        return 1.4 + 0.1 * prog(t, 0, T["cut_close"]) + 0.25 * k, lerp(930, 880, k), 460
+    if t < T["cut_chase"]:
+        return 2.0 + 0.1 * prog(t, T["cut_close"], 2.5), 900, 460
+    if t < T["cut_tender"]:
+        if t > T["lift"] - 0.2:
+            k = ease_in_out(prog(t, T["lift"] - 0.2, 0.9))
+            return lerp(1.75, 2.1, k), lerp(cx, MUG[0] - 150, k), lerp(560, 520, k)
+        return 1.75, cx, 560
+    if t < T["cut_window"]:
+        return 2.0 + 0.1 * prog(t, T["cut_tender"], 5), 1330, 600
+    if t < T["cut_tests"]:
+        return 1.9 - 0.1 * ease_in_out(prog(t, T["cut_window"], 2.5)), 360, 430
+    if t < T["cut_end"]:
+        k = ease_in_out(prog(t, T["passed"] - 0.1, 0.8))
+        return lerp(1.8, 1.3, k), lerp(870, 1000, k), lerp(420, 470, k)
+    return 1.5 - 0.08 * prog(t, T["cut_end"], 2.5), 440, 450
+
+
 # ---------------------------------------------------------------- lighting
 AMBIENT = (0.40, 0.44, 0.62)
 
@@ -548,6 +596,8 @@ def light_map(c, t, cam, masks=True):
     c.drawRect(skia.Rect.MakeXYWH(sx, sy, sw, sh), white)
     c.drawRect(skia.Rect.MakeXYWH(wx, wy, ww, wh), white)
     oval(c, LAMP_HEAD[0] + 14, LAMP_HEAD[1] + 38, 60, 16, (1, 1, 1, 1))
+    for (bx, by, col, ph) in FAIRY:
+        circle(c, bx, by, 10, (1, 1, 1, 1))
     c.restore()
 
 
@@ -737,7 +787,7 @@ def captions(c, t):
         a = ease_out(prog(t, t0 - 0.05, 0.15)) * (1 - prog(t, t0 + d + 0.15, 0.2))
         s = CAPTIONS[lid]
         w = f.measureText(s) + 64
-        with Xf(c, W / 2, H - 110 + (1 - a) * 14, alpha=a):
+        with Xf(c, W / 2, caption_y() + (1 - a) * 14, alpha=a):
             rrect(c, -w / 2, -38, w, 76, 38, (0.05, 0.05, 0.1, 0.55))
             text(c, s, 0, 15, f, P["ivory"] if lid != "thanks" else hexc("#FFE08A"))
 
@@ -746,203 +796,36 @@ def title_card(c, t):
     k = ease_out(prog(t, T["title"], 0.6))
     if k <= 0:
         return
-    with Xf(c, W / 2, 1010 - (1 - k) * 16, alpha=k):
+    with Xf(c, W / 2, (1010 if W > H else int(H * 0.78)) - (1 - k) * 16, alpha=k):
         text(c, "debugging, gently.", 0, 0, font(66, wght=600), P["ivory"], shadow_a=0.4)
 
 
 # ---------------------------------------------------------------- compositor
-class Renderer:
-    def __init__(self):
-        self.arr = np.zeros((H, W, 4), np.uint8)
-        self.surf = skia.Surface(self.arr, colorType=skia.kRGBA_8888_ColorType)
-        self.larr = np.zeros((H, W, 4), np.uint8)
-        self.lsurf = skia.Surface(self.larr, colorType=skia.kRGBA_8888_ColorType)
-        self.acc = np.zeros((H, W, 4), np.float32)
-        self.farr = np.zeros((H, W, 4), np.uint8)
-        self.fsurf = skia.Surface(self.farr, colorType=skia.kRGBA_8888_ColorType)
-        self.sm = skia.Surface(W // 4, H // 4)
-        self.sm2 = skia.Surface(W // 4, H // 4)
-        rng = np.random.default_rng(3)
-        self.grain = [rng.normal(0, 1, (H // 2, W // 2)).astype(np.float32) for _ in range(6)]
+def glows(c, t, cam, glow):
+    sx, sy, sw, sh_ = SCREEN
+    glow(sx + sw / 2, sy + sh_ / 2, 520, hexc("#6F8FD0"), 0.10)
+    glow(LAMP_HEAD[0] + 10, LAMP_HEAD[1] + 50, 200, hexc("#FFD9A0"), 0.28)
+    for (bx, by, col, ph) in FAIRY:
+        glow(bx, by, 40, col, 0.35 * (0.75 + 0.25 * math.sin(t * 2 + ph)))
+    fs = firefly_world(t)
+    if fs and fs["glow"] > 0:
+        glow(fs["x"] - 18, fs["y"] - 24, 90, hexc("#FFE08A"), 0.55 * fs["glow"])
 
-    def sub(self, t):
-        cam = camera_at(t)
-        c = self.surf.getCanvas()
-        c.clear(skia.ColorBLACK)
-        draw_world(c, t, cam, "bg")
-        # background: lit, with emissive regions (screen, window, bulb) left bright
-        light_map(self.lsurf.getCanvas(), t, cam, masks=True)
-        limg = skia.Image.fromarray(self.larr, colorType=skia.kRGBA_8888_ColorType, copy=False)
-        p = skia.Paint()
-        p.setBlendMode(skia.BlendMode.kMultiply)
-        c.drawImage(limg, 0, 0, skia.SamplingOptions(), p)
-        # foreground (characters & props): its own layer, lit without the masks
-        fc = self.fsurf.getCanvas()
-        fc.clear(skia.Color4f(0, 0, 0, 0))
-        draw_world(fc, t, cam, "fg")
-        light_map(self.lsurf.getCanvas(), t, cam, masks=False)
-        limg = skia.Image.fromarray(self.larr, colorType=skia.kRGBA_8888_ColorType, copy=False)
-        pm_ = skia.Paint()
-        pm_.setBlendMode(skia.BlendMode.kModulate)
-        fc.drawImage(limg, 0, 0, skia.SamplingOptions(), pm_)
-        c.drawImage(skia.Image.fromarray(self.farr, colorType=skia.kRGBA_8888_ColorType, copy=False), 0, 0)
-        # additive glows on top of the lit frame
-        self.glows(c, t, cam)
-        return self.arr
 
-    def glows(self, c, t, cam):
-        z, cx, cy = cam
-        c.save()
-        c.translate(W / 2, H / 2)
-        c.scale(z, z)
-        c.translate(-cx, -cy)
-
-        def glow(x, y, r, col, a):
-            sh = skia.GradientShader.MakeRadial((x, y), r, [skia.Color4f(*col[:3], a).toColor(),
-                                                           skia.Color4f(*col[:3], 0).toColor()])
-            pp = skia.Paint(AntiAlias=True)
-            pp.setShader(sh)
-            pp.setBlendMode(skia.BlendMode.kPlus)
-            c.drawCircle(x, y, r, pp)
-
-        sx, sy, sw, sh_ = SCREEN
-        glow(sx + sw / 2, sy + sh_ / 2, 520, hexc("#6F8FD0"), 0.10)
-        glow(LAMP_HEAD[0] + 10, LAMP_HEAD[1] + 50, 200, hexc("#FFD9A0"), 0.28)
-        fs = firefly_world(t)
-        if fs and fs["glow"] > 0:
-            glow(fs["x"] - 18, fs["y"] - 24, 90, hexc("#FFE08A"), 0.55 * fs["glow"])
-        c.restore()
-
-    def frame(self, fi):
-        t = fi / FPS
-        self.acc[:] = 0
-        n = SUB if SUB > 1 else 1
-        for k in range(n):
-            ts = t + ((k + 0.5) / n - 0.5) * SHUTTER / FPS if n > 1 else t
-            # never blur across a hard cut
-            ts = no_cross_cut(t, ts)
-            self.acc += self.sub(max(0.0, min(DUR - 1e-4, ts)))
-        out = (self.acc / n).astype(np.uint8)
-        self.arr[:] = out
-        c = self.surf.getCanvas()
-        self.bloom(c)
-        # screen-space overlays
-        vignette(c)
-        captions(c, t)
-        title_card(c, t)
-        fade = 1 - ease_in(prog(t, DUR - 0.7, 0.7))
-        fade_in = ease_out(prog(t, 0, 0.5))
-        k = min(fade, fade_in)
-        if k < 1:
-            c.drawRect(skia.Rect.MakeWH(W, H), paint((0, 0, 0, 1 - k)))
-        g = self.grain[fi % len(self.grain)]
-        g2 = np.repeat(np.repeat(g, 2, 0), 2, 1)
-        a = self.arr[:, :, :3].astype(np.float32)
-        a += g2[:, :, None] * 3.2
-        self.arr[:, :, :3] = np.clip(a, 0, 255).astype(np.uint8)
-        return self.arr
-
-    def bloom(self, c):
-        img = skia.Image.fromarray(self.arr, colorType=skia.kRGBA_8888_ColorType)
-        # bright-pass at quarter res
-        sc = self.sm.getCanvas()
-        sc.clear(skia.ColorBLACK)
-        p = skia.Paint()
-        k, off = 2.4, -0.7 * 2.4
-        p.setColorFilter(skia.ColorFilters.Matrix([k, 0, 0, 0, off, 0, k, 0, 0, off, 0, 0, k, 0, off, 0, 0, 0, 1, 0]))
-        sc.drawImageRect(img, skia.Rect.MakeWH(W // 4, H // 4), skia.SamplingOptions(skia.FilterMode.kLinear), p)
-        small = self.sm.makeImageSnapshot()
-        s2 = self.sm2.getCanvas()
-        s2.clear(skia.ColorBLACK)
-        pb = skia.Paint()
-        pb.setImageFilter(skia.ImageFilters.Blur(6, 6))
-        s2.drawImage(small, 0, 0, skia.SamplingOptions(), pb)
-        bl = self.sm2.makeImageSnapshot()
-        pa = skia.Paint()
-        pa.setBlendMode(skia.BlendMode.kPlus)
-        pa.setAlphaf(0.55)
-        c.drawImageRect(bl, skia.Rect.MakeWH(W, H), skia.SamplingOptions(skia.FilterMode.kLinear), pa)
+def overlays(c, t):
+    captions(c, t)
+    title_card(c, t)
 
 
 CUTS = [T["cut_close"], T["cut_chase"], T["cut_tender"], T["cut_window"], T["cut_tests"], T["cut_end"]]
-
-
-def no_cross_cut(t, ts):
-    for cut in CUTS:
-        if t >= cut > ts:
-            return cut
-        if t < cut <= ts:
-            return cut - 1e-4
-    return ts
-
-
-def vignette(c):
-    sh = skia.GradientShader.MakeRadial((W / 2, H / 2), W * 0.72, [
-        skia.Color4f(0, 0, 0, 0).toColor(), skia.Color4f(0, 0, 0, 0).toColor(), skia.Color4f(0.02, 0.02, 0.06, 0.55).toColor()],
-        [0, 0.5, 1])
-    p = skia.Paint()
-    p.setShader(sh)
-    c.drawPaint(p)
-
-
-# ---------------------------------------------------------------- entry points
-_R = None
-
-
-def _init():
-    global _R
-    _R = Renderer()
-
-
-def _chunk(args):
-    k, f0, f1, out = args
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}",
-           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-pix_fmt", "yuv420p", out]
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    for f in range(f0, f1):
-        p.stdin.write(_R.frame(f).tobytes())
-    p.stdin.close()
-    p.wait()
-    return k
-
-
-def render_video():
-    nfr = int(DUR * FPS)
-    os.makedirs(os.path.join(BUILD, "chunks"), exist_ok=True)
-    n = 12
-    step = math.ceil(nfr / n)
-    jobs = [(k, k * step, min(nfr, (k + 1) * step), os.path.join(BUILD, "chunks", f"c{k:02d}.mp4")) for k in range(n)]
-    with Pool(os.cpu_count(), initializer=_init) as pool:
-        for k in pool.imap_unordered(_chunk, jobs):
-            print("chunk", k, flush=True)
-    lst = os.path.join(BUILD, "chunks", "list.txt")
-    open(lst, "w").write("".join(f"file '{j[3]}'\n" for j in jobs))
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy",
-                    os.path.join(BUILD, "video.mp4")], check=True)
-
-
-def stills(times):
-    r = Renderer()
-    d = os.path.join(BUILD, "stills")
-    os.makedirs(d, exist_ok=True)
-    cols, tw, th = 3, 640, 360
-    rows = math.ceil(len(times) / cols)
-    sheet = np.full((rows * (th + 28), cols * tw, 4), 255, np.uint8)
-    ss = skia.Surface(sheet, colorType=skia.kRGBA_8888_ColorType)
-    cv = ss.getCanvas()
-    for i, t in enumerate(times):
-        a = r.frame(int(round(t * FPS))).copy()
-        img = skia.Image.fromarray(a, colorType=skia.kRGBA_8888_ColorType)
-        img.save(os.path.join(d, f"f_{t:05.2f}.png"), skia.kPNG)
-        x, y = (i % cols) * tw, (i // cols) * (th + 28)
-        cv.drawImageRect(img, skia.Rect.MakeXYWH(x, y + 28, tw, th), skia.SamplingOptions(skia.FilterMode.kLinear))
-        cv.drawString(f"{t:.2f}s", x + 8, y + 21, font(20, wght=600), paint(P["slate"]))
-    skia.Image.fromarray(sheet, colorType=skia.kRGBA_8888_ColorType).save(os.path.join(d, "sheet.png"), skia.kPNG)
-    print(os.path.join(d, "sheet.png"))
+NAME = "the_bug"
 
 
 if __name__ == "__main__":
+    import cine
+    import film as me
+    tag = "_vertical" if cine.VERTICAL else ""
     if sys.argv[1] == "stills":
-        stills([float(x) for x in sys.argv[2:]])
+        cine.stills(me, BUILD, [float(x) for x in sys.argv[2:]], tag="sheet" + tag)
     elif sys.argv[1] == "video":
-        render_video()
+        cine.render_video(me, BUILD, "video" + tag)

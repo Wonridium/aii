@@ -184,7 +184,11 @@ def build():
         add(vo, voice(lid) * (0.8 if lid == "thanks" else 1.0), T[lid])
     vo = reverb(vo, "room", 0.06)[:n]
 
-    # score
+    finish(vo, fx, amb, n)
+
+
+def finish(vo, fx, amb, n):
+    """Score + ducking + soft limiting + two-pass loudnorm to -14 LUFS."""
     sc, sr = sf.read(os.path.join(BUILD, "score.wav"))
     assert sr == SR
     sc = sc[:n]

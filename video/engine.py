@@ -6,7 +6,7 @@ import random
 import numpy as np
 import skia
 
-W, H = 1920, 1080
+W, H = (1080, 1920) if os.environ.get("VERTICAL") else (1920, 1080)
 FPS = int(os.environ.get("FPS", 60))
 HERE = os.path.dirname(os.path.abspath(__file__))
 
