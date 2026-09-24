@@ -27,7 +27,7 @@ vm.createContext(sandbox);
 function load(rel) { vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), sandbox, { filename: rel }); }
 
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]).filter((s) => s !== 'js/engine.js' && s !== 'js/audio.js');
+const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]).filter((s) => s !== 'js/engine.js' && !/^https?:/.test(s));
 scripts.forEach(load);
 const C = sandbox.CANDLE;
 const { nodes, errors } = C.parser.parse(C.sources, { skills: C.SKILLS, speakers: C.SPEAKERS });
@@ -38,8 +38,9 @@ const warnings = [];
 // ---------------------------------------------------------------- static
 const KNOWN_DIRS = new Set(['bg', 'title', 'clock', 'time', 'set', 'add', 'unset', 'health', 'morale', 'resethp', 'xp', 'thought', 'task', 'done', 'clue', 'align', 'attr', 'sig', 'act', 'music', 'sfx', 'weather', 'checkpoint', 'hub', 'pause', 'end', 'gameover', 'openfile']);
 const SCENES = new Set(C.painter.scenes);
+const SCENES3D = new Set(C.scene3d.scenes);
 const MUSIC = new Set(['dream', 'wind', 'glass', 'interior', 'ball', 'under', 'break', 'dawn', 'silence']);
-const SFX = new Set(['knock', 'crack', 'bell', 'dice', 'sing']);
+const SFX = new Set(C.audio.sfxNames);
 const ALIGNS = new Set(Object.keys(C.ALIGN));
 const tasksAdded = new Set();
 const tasksDone = new Set();
@@ -77,7 +78,8 @@ for (const id in nodes) {
     }
     if (it.t === 'dir') {
       if (!KNOWN_DIRS.has(it.name)) problems.push(`${id}: unknown directive @${it.name}`);
-      if (it.name === 'bg' && !SCENES.has(it.arg)) problems.push(`${id}: unknown scene ${it.arg}`);
+      if (it.name === 'bg' && !SCENES.has(it.arg)) problems.push(`${id}: unknown 2D scene ${it.arg}`);
+      if (it.name === 'bg' && !SCENES3D.has(it.arg)) problems.push(`${id}: unknown 3D scene ${it.arg}`);
       if (it.name === 'music' && !MUSIC.has(it.arg)) problems.push(`${id}: unknown music ${it.arg}`);
       if (it.name === 'sfx' && !SFX.has(it.arg)) problems.push(`${id}: unknown sfx ${it.arg}`);
       if (it.name === 'thought' && !C.THOUGHTS[it.arg]) problems.push(`${id}: unknown thought ${it.arg}`);

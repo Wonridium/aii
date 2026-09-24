@@ -32,6 +32,7 @@ LEDGER: Item: the Basin in Thawmonth should be one degree above freezing, at mos
 
 == wo_in
 > Inside, the hum becomes a roar: a long hall of iron and brass, two great compressors thudding like the hearts of animals too large to see all at once, pipes sweating frost, a smell of ammonia that goes up your nose like a thumb.
+@sfx pencil
 > In a glass booth at the end of the hall, a thin man in shirtsleeves and a cardigan is writing in a ledger by the light of a green lamp. As you come in he is saying, to the nearest compressor, in a gentle voice: "Easy, Hilda. Easy, old girl. Nearly there."
 > He sees you. The pen stops.
 QUELL: "I'm — we're not — visitors aren't permitted after ten, the director's very clear—" He sees the silver pin on your coat, and the rest of the sentence folds itself up and puts itself away. "Oh," he says. "Oh. You're from the Inquest."
@@ -66,6 +67,7 @@ OBJECTION: *On paper.* He heard himself say it. He's waiting to see if you did.
 => wo_talk
 
 == wo_q_log
+@sfx paper
 > He takes down a clean green ledger from a shelf — too clean, the spine uncracked — and opens it to this week. Columns: date, hour, compressor load, discharge temperature. The last column reads 14 degrees. Every hour. Every day. Fourteen, fourteen, fourteen, down the page like a fence.
 QUELL: "Fourteen degrees. The permit is sixteen. We're well inside."
 * [SCRUTINY 10] [Look at the ink.] -> wo_ink | wo_ink_f

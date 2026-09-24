@@ -10,7 +10,8 @@
   function load(key) { try { var s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
   function drop(key) { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } }
 
-  var settings = Object.assign({ pace: 'flow', sound: false, gfx: '3d', voice: 'inner', vol: 0.8 }, load(SET_KEY) || {});
+  var settings = Object.assign({ pace: 'flow', sound: false, gfx: '3d', voice: 'inner' }, load(SET_KEY) || {});
+  settings.vols = Object.assign({ music: 0.75, sfx: 0.9, voice: 1 }, settings.vols || {});
 
   // ---------------------------------------------------------------- parse
   var parsed = C.parser.parse(C.sources, { skills: C.SKILLS, speakers: C.SPEAKERS });
@@ -226,19 +227,55 @@
     return Math.min(1700, 260 + len * 9);
   }
   var lastDelay = 0;
+  // ---------------------------------------------------------------- voices
+  var VOICED = { 'THE COLD': 1, FELIKS: 1, SARRE: 1, 'YOUR MOTHER': 1 };
+  function fnv(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(36);
+  }
+  function voiceHash(spk, raw) {
+    if (!(C.SKILLS[spk] || VOICED[spk]) || /\{[?=]/.test(raw)) return null;
+    return fnv(spk + '|' + raw);
+  }
+  var voicing = null, voiceWaiting = false;
+  function voiceOn() { return settings.sound && settings.voice !== 'off' && settings.pace !== 'instant' && C.audio && C.audio.voice; }
+  function voiceStop() { voicing = null; if (C.audio && C.audio.voice) C.audio.voice.stop(); }
+  function waitVoice() {
+    var p = voicing;
+    voicing = null;
+    if (!p) return Promise.resolve();
+    if (fastUntilChoice) { voiceStop(); return Promise.resolve(); }
+    return new Promise(function (res) {
+      var done = false;
+      voiceWaiting = true;
+      function fin() { if (done) return; done = true; voiceWaiting = false; skipWait = null; res(); }
+      skipWait = function () { C.audio.voice.stop(); fin(); };
+      p.then(function (played) { if (played === false) fin(); else setTimeout(fin, 220); });
+    });
+  }
   async function say(e) {
     if (settings.pace === 'click' && S.log.length && lastDelay > 0) {
       await waitClick();
+      voiceStop();
     } else {
       await wait(lastDelay);
+      await waitVoice();
     }
     addEntry(e);
     lastDelay = paceFor(e);
+    if (e.vh && voiceOn() && !fastUntilChoice && C.audio.voice.has(e.vh)) {
+      voicing = C.audio.voice.play(e.vh);
+      if (settings.pace === 'flow') lastDelay = Math.min(lastDelay, 600);
+    }
   }
 
   // ---------------------------------------------------------------- toasts & HUD
+  function sfx(name) { if (C.audio && settings.sound) C.audio.sfx(name); }
+  var TOAST_SFX = { task: 'chime_task', 'task done': 'chime_task', clue: 'chime_clue', thought: 'chime_thought', xp: 'xp', level: 'level', hurt: 'hurt', hurtmo: 'hurtmo', heal: 'heal', healmo: 'heal' };
   var xpPending = 0, xpTimer = null;
   function toast(kind, text, open) {
+    if (TOAST_SFX[kind]) sfx(TOAST_SFX[kind]);
     var box = $('toasts');
     var max = window.innerWidth < 820 ? 2 : 4;
     while (box.children.length >= max) box.removeChild(box.firstChild);
@@ -393,7 +430,7 @@
       case 'sig': S.sig = arg; break;
       case 'act': await actCard(arg); break;
       case 'music': S.music = arg; if (C.audio) C.audio.set(arg); break;
-      case 'sfx': if (C.audio) C.audio.sfx(arg); break;
+      case 'sfx': sfx(arg); break;
       case 'weather': S.weather = arg; if (C.weather) C.weather.set(arg); break;
       case 'checkpoint': lastDelay = 0; store(SAVE_KEY + '-cp', JSON.parse(JSON.stringify(S))); break;
       case 'hub': S.hub = S.node; break;
@@ -461,6 +498,8 @@
       if (it.t === 'line') {
         if (it.pass != null && !H.pass(it.spk, it.pass)) continue;
         var e = { k: it.spk === 'DOC' ? 'doc' : 'line', spk: it.spk, h: fmt(it.text) };
+        if (e.k === 'doc') sfx('paper');
+        else e.vh = voiceHash(it.spk, it.text);
         if (it.pass != null) e.label = C.DIFFICULTY(it.pass) + ': Success';
         else if (pendingLabel && pendingLabel.skill === it.spk) e.label = pendingLabel.label;
         if (e.k === 'line' && C.SKILLS[it.spk]) pendingLabel = null;
@@ -562,6 +601,8 @@
   async function go(target) {
     if (busy) return;
     busy = true;
+    voiceStop();
+    sfx('click');
     snapshotLast();
     markOld();
     choicesEl.innerHTML = '';
@@ -572,6 +613,8 @@
   async function choose(it) {
     if (busy) return;
     busy = true;
+    voiceStop();
+    sfx('click');
     snapshotLast();
     markOld();
     choicesEl.innerHTML = '';
@@ -607,7 +650,7 @@
     var a = 1 + Math.floor(Math.random() * 6);
     var b = 1 + Math.floor(Math.random() * 6);
     var ok = (a + b === 12) || (a + b !== 2 && a + b + sv >= d);
-    if (C.audio) C.audio.sfx('dice');
+    sfx('dice');
     var nm = C.SKILLS[chk.skill].name.toUpperCase();
     var label = C.DIFFICULTY(d) + ': ' + (ok ? 'Success' : 'Failure');
     var h = '<div class="rollcard ' + (ok ? 'ok' : 'bad') + (chk.red ? ' red' : '') + '">' +
@@ -617,6 +660,7 @@
       (a + b === 12 ? ' — double six' : a + b === 2 ? ' — snake eyes' : '') + '</small></span></div>';
     await wait(250);
     addEntry({ k: 'roll', h: h });
+    sfx(ok ? 'success' : 'fail');
     pendingLabel = { skill: chk.skill, label: label };
     return ok;
   }
@@ -650,6 +694,8 @@
       var el = $('actcard');
       el.innerHTML = '<div class="actin"><div class="actno">' + esc(m[1]) + '</div><div class="actname">' + esc(m[2]) + '</div><div class="acthint">Click to continue</div></div>';
       el.hidden = false;
+      voiceStop();
+      sfx('act');
       requestAnimationFrame(function () { el.classList.add('on'); });
       var done = false;
       function close() {
@@ -857,6 +903,15 @@
     return h;
   }
 
+  var hasVoices = !!(C.VOICE_MANIFEST && C.VOICE_MANIFEST.files && C.VOICE_MANIFEST.files.length);
+  function volRow(k, label) {
+    var v = settings.vols[k];
+    return '<label class="vol"><span>' + label + '</span><input type="range" min="0" max="100" step="5" data-vol="' + k + '" value="' + Math.round(v * 100) + '" aria-label="' + label + ' volume"></label>';
+  }
+  function applyVolumes() {
+    if (!C.audio || !C.audio.setVolume) return;
+    ['music', 'sfx', 'voice'].forEach(function (k) { C.audio.setVolume(k, settings.vols[k]); });
+  }
   function menuHTML() {
     var p = settings.pace;
     return '<header class="phead"><div class="pkicker">Settings</div><h2>How the night is read</h2></header>' +
@@ -865,7 +920,12 @@
       '<label><input type="radio" name="pace" id="paceClick" value="click"' + (p === 'click' ? ' checked' : '') + '> By hand — press Continue for every line</label>' +
       '<label><input type="radio" name="pace" id="paceInstant" value="instant"' + (p === 'instant' ? ' checked' : '') + '> All at once</label>' +
       '</fieldset>' +
-      '<fieldset class="opt"><legend>Sound</legend><label><input type="checkbox" id="soundOpt"' + (settings.sound ? ' checked' : '') + '> Wind, ice and the band (procedural)</label></fieldset>' +
+      '<fieldset class="opt"><legend>Sound</legend><label><input type="checkbox" id="soundOpt"' + (settings.sound ? ' checked' : '') + '> Music, ambience and effects (made in your browser)</label>' +
+      '<label><input type="checkbox" id="voiceOpt"' + (settings.voice !== 'off' ? ' checked' : '') + (hasVoices ? '' : ' disabled') + '> Voice the sixteen skills and the dead' + (hasVoices ? '' : ' <em>(voice files not found)</em>') + '</label>' +
+      volRow('music', 'Music') + volRow('sfx', 'Effects') + volRow('voice', 'Voices') + '</fieldset>' +
+      '<fieldset class="opt"><legend>Pictures</legend>' +
+      '<label><input type="radio" name="gfx" value="3d"' + (settings.gfx !== '2d' ? ' checked' : '') + (C.scene3d ? '' : ' disabled') + '> Painted in 3D (needs WebGL)</label>' +
+      '<label><input type="radio" name="gfx" value="2d"' + (settings.gfx === '2d' ? ' checked' : '') + '> Flat sketches (lighter on old machines)</label></fieldset>' +
       '<div class="menubtns"><button id="mUndo">Undo last choice</button><button id="mAct">Restart this act</button><button id="mTitle">Save &amp; quit to title</button></div>' +
       '<p class="keys">Keys: <kbd>1</kbd>–<kbd>9</kbd> choose · <kbd>Space</kbd> continue or hurry · <kbd>F</kbd> file · <kbd>D</kbd> drawer · <kbd>J</kbd> docket · <kbd>Esc</kbd> close</p>' +
       '<p class="keys">The game saves itself at every choice, in this browser only.</p>';
@@ -912,8 +972,23 @@
       $('soundOpt').addEventListener('change', function (e) {
         settings.sound = e.target.checked;
         store(SET_KEY, settings);
-        if (C.audio) C.audio.enable(settings.sound, S && S.music);
+        if (C.audio) C.audio.enable(settings.sound);
         syncSoundBtn();
+      });
+      $('voiceOpt').addEventListener('change', function (e) {
+        settings.voice = e.target.checked ? 'inner' : 'off';
+        store(SET_KEY, settings);
+        if (!e.target.checked) voiceStop();
+      });
+      body.querySelectorAll('input[data-vol]').forEach(function (r) {
+        r.addEventListener('input', function () {
+          settings.vols[r.dataset.vol] = +r.value / 100;
+          store(SET_KEY, settings);
+          applyVolumes();
+        });
+      });
+      body.querySelectorAll('input[name=gfx]').forEach(function (r) {
+        r.addEventListener('change', function () { setGraphics(r.value); });
       });
       $('mUndo').addEventListener('click', function () {
         var st = lastSnap || load(SAVE_KEY + '-last');
@@ -985,7 +1060,7 @@
     }
     if (e.key === ' ' || e.key === 'Enter') {
       if (e.target && e.target.tagName === 'BUTTON' && e.key === 'Enter') return;
-      if (skipWait) { e.preventDefault(); fastUntilChoice = true; skipWait(); return; }
+      if (skipWait) { e.preventDefault(); if (!voiceWaiting) fastUntilChoice = true; skipWait(); return; }
       if (clickResolve) { e.preventDefault(); clickResolve(); return; }
       var c = choicesEl.querySelector('button.continue');
       if (c) { e.preventDefault(); c.click(); }
@@ -1009,7 +1084,7 @@
     document.addEventListener('keydown', onKey);
     $('scroll').addEventListener('click', function (e) {
       if (e.target.closest('button') || e.target.closest('.clickable')) return;
-      if (skipWait) { fastUntilChoice = true; skipWait(); }
+      if (skipWait) { if (!voiceWaiting) fastUntilChoice = true; skipWait(); }
     });
     document.querySelectorAll('.tab').forEach(function (t) {
       t.addEventListener('click', function () {
@@ -1020,22 +1095,23 @@
     $('closePanel').addEventListener('click', closePanel);
     $('overlay').addEventListener('click', function (e) { if (e.target === $('overlay')) closePanel(); });
     $('btnNew').addEventListener('click', function () {
-      if (C.audio) C.audio.enable(settings.sound, 'dream');
+      if (C.audio) C.audio.enable(settings.sound);
       newGame();
     });
     $('btnContinue').addEventListener('click', function () {
       var st = load(SAVE_KEY);
-      if (C.audio) C.audio.enable(settings.sound, st && st.music);
+      if (C.audio) C.audio.enable(settings.sound);
       hideTitle();
       if (st) restore(st); else newGame();
     });
     $('soundBtn').addEventListener('click', function () {
       settings.sound = !settings.sound;
       store(SET_KEY, settings);
-      if (C.audio) C.audio.enable(settings.sound, S && S.music);
+      if (C.audio) C.audio.enable(settings.sound);
       syncSoundBtn();
     });
     syncSoundBtn();
+    applyVolumes();
 
     if (window.claude && window.claude.hot && window.claude.hot.snapshot) {
       try { window.claude.hot.snapshot(function () { return { S: S }; }); } catch (e) { /* ignore */ }

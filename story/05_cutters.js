@@ -8,6 +8,7 @@ CANDLE.script(String.raw`
 => cu_return
 @endif
 @time 25
+@sfx saw
 > A long shed on runners, walls of raw plank. Along them, hung on pegs like the jawbones of whales, the great two-handled saws of the ice trade — some taller than a man, their teeth filed bright. Braziers glow at either end. Thirty men with red faces and wet wool steaming off their shoulders sit on crates and benches, and they are singing.
 > Painted on the far wall in tall red letters, and painted over in grey, and painted again in red, so that the word has the look of a scar that keeps reopening: UNPRICED.
 DOC: *Pull, boy, and let him pull — / never push the steel; / the sea lies down in Deepwinter / and we're the ones who kneel. / One block for the brewer, / one block for the Crown, / one for the man who won't come up / when the Basin lets him down.*

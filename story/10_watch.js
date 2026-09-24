@@ -40,6 +40,7 @@ APPETITE: Four sugars. He's a good boy. He's a very good boy.
 => wa_talk
 
 == wa_book
+@sfx paper
 > *The Examiner's Handbook (Revised)*. Someone has underlined whole paragraphs in pencil, and written in the margins in a round careful hand: *YES.* and *remember this!!* and, beside the section on the deportment of the Examiner at the scene of a death, *like Marrow at the bell tower.*
 PIM: He has gone scarlet to the ears. "I'm studying for the Examiners' Board, sir. Next spring. I've failed it twice." A pause. "Three times. The third time I got the Inquest Act backwards. I mean I wrote it backwards. By accident. It's harder than it sounds."
 * "Would you like me to sign it?" -> wa_book_sign

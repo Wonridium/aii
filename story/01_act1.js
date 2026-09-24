@@ -87,6 +87,7 @@ UNDERTOW: His eyes are open because he wanted to see. He went down there to *loo
 
 == a1_hand
 > His left hand is pressed palm-out against the ice from below, fingers spread. The knuckles of the first two fingers are split and pale.
+@sfx knock
 > He was knocking. Before the cold took the knock out of him, he was knocking.
 > For a moment — only a moment — the hand is small. The fingers are a boy's fingers. The water is the Basin at dusk, forty-four winters ago, and your brother—
 @if pass("STARCH", 11)
@@ -277,6 +278,7 @@ TENDERNESS: Fur, rouge, a chin like a bowsprit. A businesswoman with a carpet. T
 @add odile -1
 BRAN: He looks at you for a long moment, as if measuring a block for a cut. Then he nods once. "Right, lads."
 ODILE: "Six hundred tickets, Examiner." Very quietly. "Six hundred. I hope you've budgeted for my staff's wages, because I haven't." She turns, fur and all, and goes back up the steps. The carpet goes with her.
+@sfx saw
 > The cutters work the way good workmen do, without hurry and without waste. A rectangle is scored around him with a pick. Then the saws: long, two-handled, a man at each end, pulling in turn — *hunh*, *hunh* — and the blades sing in the ice with a sound like a bowed string.
 BAROMETER: Listen to the cut. The top of the ice sings. The bottom of it — the last hand's-breadth before the water — makes no sound at all. It goes through like cake.
 > Black water wells up, steaming faintly in the lantern light. Two men kneel with boat-hooks. They bring him up gently, streaming, stiff as a plank. His left arm stays raised. They cannot lower it.

@@ -25,6 +25,7 @@ UNDERTOW: It isn't singing. Pim knows. Aino knows. It is laughing.
 > Inside the Chandelier, six hundred people are dancing the Candle Waltz under a chandelier that drips like a thawing tree. The sprung floor rings under their feet. Nobody can hear the ice over the band.
 @endif
 @if f_moth
+@sfx paper
 > At the gate, a man in a grey coat is nailing a sheet of cream notepaper to the arch of ice. People stop to read it. They take out their papers and look at the back, where their valuations are printed, and then look at each other.
 @endif
 ILSE: Beside you, very quietly: "Examiner." She has not opened the notebook. "Whatever you're going to do, it has to be tonight."
@@ -38,6 +39,7 @@ ILSE: Beside you, very quietly: "Examiner." She has not opened the notebook. "Wh
 @weather mild
 @title THE GLASS — THE MILD
 @if time >= t("03:20")
+@sfx sing
 > The ice is singing without pause now, a continuous high keening from every direction. You have run out of time to do anything but the one thing.
 => ad_start
 @endif

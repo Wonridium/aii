@@ -8,6 +8,7 @@ CANDLE.script(String.raw`
 => gu_return
 @endif
 @time 20
+@sfx fire
 > At the corner where Needle Row meets the main lane, a brazier made from an old oil drum glows red through the holes punched in its sides. Chestnuts split and hiss on the grille. Crouched beside it on an upturned crate, feeding it splinters, is a boy of ten or so in a man's cap and a constable's grey scarf wound three times round his neck.
 GULL: He looks you up and down with professional interest. "Chestnuts. Ten a cone, three cones for a crown, Examiner's price double." A beat. "Joke. Half price. You look like you need it."
 * "Why half price?" -> gu_half
@@ -20,6 +21,7 @@ TENDERNESS: He's not being cruel. He's being accurate. There's a difference, and
 => gu_talk
 
 == gu_buy
+@sfx paper
 > He shovels hot chestnuts into a paper cone with a practised flick and holds out a mittened hand. You pay him. He counts it twice.
 APPETITE: Hot. Split. The flesh inside floury and sweet. You burn your fingers on the first one and don't care.
 @health 1

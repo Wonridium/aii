@@ -31,7 +31,7 @@ const FILE = path.resolve(__dirname, '..', opt('--file', 'index.html'));
     let steps = 0, ending = null, shot = 0, idleSince = 0;
     while (steps < 2500) {
       steps++;
-      if (await page.isVisible('#actcard')) { await page.click('#actcard'); await page.waitForTimeout(550); continue; }
+      if (await page.isVisible('#actcard')) { await page.click('#actcard', { timeout: 2000 }).catch(() => {}); await page.waitForTimeout(550); continue; }
       if (await page.isVisible('#endcard')) {
         const txt = await page.textContent('#endcard');
         ending = /The ice closes/.test(txt) ? 'gameover' : 'end';
@@ -47,7 +47,7 @@ const FILE = path.resolve(__dirname, '..', opt('--file', 'index.html'));
       }
       idleSince = 0;
       const b = btns[Math.floor(Math.random() * btns.length)];
-      await b.click();
+      await b.click({ timeout: 3000 }).catch(() => {});
       await page.waitForTimeout(15);
       if (SHOTS && r === 0 && [12, 60, 140].includes(steps)) await page.screenshot({ path: path.join(SHOTS, 'play' + (shot++) + '.png') });
     }

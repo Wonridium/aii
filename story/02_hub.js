@@ -231,6 +231,7 @@ ILSE: "That you had a brother." She is holding the pencil above the page, not to
 @set brother_entered
 @add thaw 2
 @add ilse 1
+@sfx pencil
 > She writes. It takes a long time; she is writing slowly, in her best hand, the one she uses for the Last Line.
 ILSE: She reads it back. "'The Examiner's brother, Feliks Marrow, fourteen years of age, drowned in the Basin forty-four winters ago in the course of the rescue of the Examiner. Body not recovered.'"
 ILSE: She closes the book. "Now he's somewhere."

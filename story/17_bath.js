@@ -8,6 +8,7 @@ CANDLE.script(String.raw`
 => ba_return
 @endif
 @time 30
+@sfx steam
 > A long low building of black-tarred logs, half sunk into a bank of snow, with steam rolling out of a vent in its roof like the breath of something asleep. A painted board over the door: SAARI'S STEAM — HOT — COLD — HONEST.
 > Inside the outer room it is warm enough to make your spectacles fog, if you wore spectacles. Pegs of coats. Boots in rows. A cold-plunge hole in the floor, cut square through the ice, with a ladder going down into the black. And behind a heavy felt curtain, voices — several, raised, in the particular tone of people who have been arguing about the same thing for years and intend to go on doing so until death.
 > A very old Rime woman in a wet linen shift sits on a stool by the curtain with a birch whisk across her knees. She looks at your coat, your pin, your gloves, and your face, in that order, and is not impressed by any of them.
@@ -120,6 +121,7 @@ DAGNY: She is looking at you thoughtfully. "Or you write a fifth."
 => ba_p_after
 
 == ba_p_after
+@sfx steam
 > The argument resumes at once, without you, at a higher temperature. Ma Saari throws another ladle on the stones. The steam swallows everyone's face.
 @add thaw 1
 @xp 10

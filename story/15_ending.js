@@ -101,8 +101,10 @@ KEEL: For the first time in forty-four years you stand on the shore of the Basin
 
 == e_knockback
 @set final = "knock"
+@sfx knock
 > You kneel on the wet stones — your knees have opinions; you overrule them — and take off your glove, and knock on the black ice with your bare knuckles. Once. Twice. Three times.
 > So they know somebody heard.
+@sfx sing
 > Nothing knocks back. The ice sings its low round note under your hand, and the sun comes along the water and lies on the back of your wrist like a palm.
 UNDERTOW: *Nothing knocks back.* Gently. *Nothing needs to. That was always the point, wasn't it. Not that they answer. That somebody knocks.*
 @add thaw 2

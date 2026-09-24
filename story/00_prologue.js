@@ -55,6 +55,7 @@ KEEL: Enough. Wake.
 => pr_wake
 
 == pr_wake
+@sfx jingle
 > You wake with the taste of iron in your mouth and a sleigh-bell in your ear.
 @thought knock
 => pr_sleigh
@@ -69,6 +70,7 @@ KEEL: Enough. Wake.
 > Beneath the runners the ice makes a sound you had forgotten you knew: a long, taut hum, like a wire under strain.
 BAROMETER: The Basin has been frozen for sixty-one days. The pressure is high and holding. The wind is from the north, as it should be. All is as it should be. (It is not.)
 HACKLES: You are on the ice. You are *on the ice*. Forty-four years of walking the long way round the bay, and here you are, sitting on it in a wooden box pulled by a horse with opinions.
+@sfx pencil
 > Beside you sits a woman who has not moved in twenty minutes. Clerk's gloves with the fingertips cut away for writing. Dark hair pinned with the Office's regulation severity. A leather notebook shut in her lap like a small sealed room.
 ILSE: "Examiner. You were talking."
 * "What did I say?" -> pr_s_what

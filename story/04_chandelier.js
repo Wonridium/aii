@@ -12,6 +12,7 @@ CANDLE.script(String.raw`
 > And above it all, the chandelier: a haywain of crystal and brass, hundreds of candles, and hung among the drops of cut glass — so you have to look twice to be sure — real icicles, long as a forearm, catching the light and dripping, very slowly, onto the floor below.
 BAROMETER: They are dripping. Icicles do not drip at this hour in Deepwinter. The room is too warm, and the ice under the floor is warmer than it has any right to be.
 DECORUM: Oh, but it's *lovely*. The proportions. The sprung floor. You could waltz here without your feet touching anything at all.
+@sfx accordion
 > On a low stage, a band is rehearsing: a cellist, a drummer with brushes, a trumpet with a mute in it, and an old man with an accordion so large he seems to be wearing it.
 @if body_carpet
 > Through the open doors you can see the crimson runner laid across the ice outside. People step around the middle of it without seeming to know that they're doing so.
@@ -34,6 +35,7 @@ WAITER: "Madame is in the gallery, Examiner." He points upward with a polishing 
 + [Leave the Chandelier.] -> hub2
 
 == ch_bar
+@sfx pour
 > The bar is a long plank of mahogany with a copper urn at one end steaming like a small locomotive. Spiced wine. Beside it, on trays, stacks of little golden cakes, each glazed and then cracked across the top in a spiderweb pattern.
 APPETITE: Thaw-cakes. Honey cakes glazed with burnt sugar and cracked like spring ice. They make them once a year, for tonight. *Once a year*, Aurel.
 WAITER: "On the house for the Examiner." He is already ladling.
@@ -219,6 +221,7 @@ ODILE: "And why would an Examiner of the Crown do that for a woman who wanted to
 => ch_o_yes
 
 == ch_o_proof
+@sfx paper
 > You set it on the red blotter between you: a fist-sized cluster of ice from the dead man's hand, wrapped in Ilse's handkerchief. You unfold the cloth.
 > It is not a block. It is a bundle of long clear needles, standing side by side like matches in a box. In the warmth of the office, as you both watch, they begin to slide apart. One falls over. Then three. Then the whole thing slumps with a tiny glassy sigh into a heap of wet splinters.
 ODILE: She stares at it. She doesn't speak for a long time.

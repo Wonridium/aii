@@ -20,6 +20,7 @@ CANDLE.script(String.raw`
 > It does not crack. That is the first thing everyone will say afterward, for years, in every kitchen in Aubade: *it didn't crack.* There is no great report, no rifle-shot, no warning.
 > The Glass simply stops being there.
 > Along a line as straight as a ruled margin — from the Works on the shore, through the Warden's hut, under the Chandelier and on toward the Narrows — the ice gives up the idea of being a floor. It happens at {?quell_diverted|twelve minutes past five|nine minutes to five}. The candles let go of each other. The sugar goes back to being water.
+@sfx bell
 > The Warden's hut tips, slowly, like a man bowing, and slides into the black. Its little bell rings once as it goes, by itself.
 > And the Chandelier—
 > The great pavilion settles into the Basin the way a woman settles into a bath: carefully, and all at once. The sprung floor folds. The red plush walls lean. And the chandelier itself, a haywain of crystal and brass and hundreds of candles, swings once on its chain, very slowly, and goes down into the water still *lit* — turning as it sinks, burning under the black surface for a long, long moment, gold and then green and then gone, like a lantern carried across.
@@ -167,6 +168,7 @@ AINO: She doesn't look at you. "It's after." She holds it out. "He said after."
 @if aino >= 3
 AINO: "I didn't read it." A pause. "I held it up to the lamp once. I didn't read it."
 @endif
+@sfx paper
 > You take it. The paper is soft from being carried against a body for a day. You unfold it.
 => a4_letter
 

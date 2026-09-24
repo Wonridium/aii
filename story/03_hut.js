@@ -44,11 +44,13 @@ AINO: "He didn't have friends. He had Odile, and the bottle, and me." The bolt d
 => hut_inside
 
 == hut_open
+@sfx door
 > You open the door. The end of a long-handled ice chisel arrives at the hollow of your throat, cold as a fact.
 HACKLES: *Don't move.* Chisel. Sharp end. Throat. Our throat. Don't move a single hair.
 => hut_inside
 
 == hut_grav
+@sfx door
 > The authority of the Crown goes in through the planks like cold. After a moment, the bolt draws back, and the door opens exactly the width of a face.
 AINO: "You're him. The Marrow." It is not a compliment. "Come in, then. Everybody else has shouted through the door today. You might as well do it from inside."
 @add aino -1
@@ -94,6 +96,7 @@ DECORUM: Too much bow. You bowed at her. She is sixteen and her grandfather is u
 
 == hut_eat
 @if sig == "APPETITE"
+@sfx paper
 > Your hand is already in your coat pocket. Greaseproof paper. A honey cake from the vendor at the ferry, only a little squashed. You hold it out.
 @else
 > In your coat pocket, under the Office seal, there is a twist of paper with three sugared almonds in it, left over from a christening in Harrowgate in autumn. You hold them out.
@@ -177,6 +180,7 @@ AINO: "Don't touch that." Very quietly.
 => hut_talk
 
 == hut_log
+@sfx paper
 > The ledger is enormous, bound in oilcloth, its pages swollen with forty-one winters of damp. The Warden's hand is large and careful, the letters built one at a time like cairns. Most of it is numbers: holes, depths, the colour of the ice. The last pages are something else.
 DOC: *3 Deepwinter.* Hole 1 (gate): 61 cm, black. Hole 7 (Chandelier steps): 58 cm, black. Good ice. Sang low all night. Declared the season open. O.C. paid 40. Told her it was 40 last year also. She said inflation.
 DOC: *19 Deepwinter.* Hole 7: 57 cm. Took a core. Bottom of the core rotten — candled. In Deepwinter. Never in my life seen it in Deepwinter.

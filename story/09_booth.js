@@ -8,6 +8,7 @@ CANDLE.script(String.raw`
 => bo_return
 @endif
 @time 25
+@sfx adding
 > A booth painted the green of a billiard table, no larger than a sentry box, with a brass plate on the door: THE GREAT MUTUAL ASSURANCE — CLAIMS & VALUATIONS — GLASS OFFICE (WINTER). Inside, a stove the size of a hatbox, a kettle, an adding machine with a brass handle, and shelf upon shelf of books bound in green cloth. The Tables.
 > Pinned to the back wall: a long chart, ruled in violet ink. Names down one side. Numbers down the other. Eleven hundred and forty of them.
 @if met_moth
@@ -129,6 +130,7 @@ MOTH: "Beautifully put. I'll have it embroidered." He picks his cup back up. "No
 
 == bo_w_yes
 @if has_logbook
+@sfx paper
 > You lay the sailing-ship exercise book on the adding machine. He reads it the way other men read love letters: once quickly, once slowly, then again with a pencil.
 MOTH: "Thirty-four degrees." Very softly. "Into the Basin. For six weeks." *Ka-chunk. Ka-chunk.* He is working the handle faster than you have seen anyone work anything.
 @else

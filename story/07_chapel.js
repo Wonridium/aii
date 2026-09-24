@@ -277,6 +277,7 @@ HESPER: "Under a *carpet*." She sets the mug down so hard the tea jumps. "I went
 @add hesper 2
 @add bran 1
 @add odile -1
+@sfx saw
 > It takes twenty minutes. Brannock Kell comes himself, with four men and two saws. Odile does not come out, but a curtain moves in the gallery. They roll the crimson runner back like a tongue, cut him out — the saws singing on top and silent at the bottom — and carry him in with his hand still raised, and lay him on the trestles, and Hesper covers him with a sheet and sets a jar-lamp at his head.
 @if !clue("soft_cut")
 BRAN: On his way out, low: "Bottom of that cut went like cake, Examiner. Clean saw. Never had a clean saw in Deepwinter."

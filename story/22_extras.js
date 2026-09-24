@@ -250,6 +250,7 @@ GULL: "The Works. Nine minutes." He's gone.
 == a3_gull_bran
 GULL: "Cutters. *Local Nine on the ice.*" He's gone.
 @set gull_used
+@sfx footsteps
 > You hear it before he's back: forty men in oilskins coming out of the Cutters' Hall with planks on their shoulders, singing the Song of the Saw in the rain.
 @set f_bran
 @set bran_knock

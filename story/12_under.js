@@ -25,6 +25,7 @@ UNDERTOW: Of course. Of course. We'll wait. We're very good at waiting.
 
 == un_prep_2
 @if no_aino
+@sfx chisel
 > There is no one to open the hole. You find the Warden's second chisel in the rack by the flags, heavy as a crowbar, and go down on your knees on the wet planks.
 * [SINEW 9] [Break the ice open.] -> un_hole_ok | un_hole_hard
 @else
@@ -37,6 +38,7 @@ AINO: She takes the long chisel from the wall without another word, and kneels, 
 => un_rope
 
 == un_hole_hard
+@sfx crack
 > It takes twenty strokes, and your shoulders are screaming, and you split a knuckle on the ninth, and at the end of it the grey skin breaks and black water wells up, steaming very faintly in the lamplight.
 @health -1
 => un_rope
@@ -44,6 +46,7 @@ AINO: She takes the long chisel from the wall without another word, and kneels, 
 == un_rope
 @if ilse_stays
 @if no_aino
+@sfx door
 > There is no one to hold the rope. You look at the coil by the stove. Then the door opens, and Brannock Kell ducks in out of the rain, soaked to the beard.
 BRAN: "Heard the chisel." He looks at the hole, and at you, and picks up the rope without a word. "I've held a man before."
 @set holder = "bran"
@@ -56,6 +59,7 @@ ILSE: She has taken off her gloves. "I'll hold it."
 @if !no_aino
 AINO: "You?" The girl looks at the clerk — slight, bookish, spectacles fogging — with open contempt.
 ILSE: "I've held on to worse." Ilse holds out her hands for the rope. "Show me how."
+@sfx rope
 > Aino looks at her a moment longer. Then she shows her: the rope round the back, under the arms; heels braced against the iron foot of the stove; how to take in slack hand over hand; the Warden's bowline, tied on you, with its slip-tuck.
 @else
 > Ilse ties the knot you tell her — a bowline, with a slip-tuck — twice, to be sure, and braces her heels against the foot of the stove, the rope round her back, the way you'd seen fishermen do.
@@ -142,6 +146,7 @@ UNDERTOW: You have it. You have the piece. You're bringing it up.
 HACKLES: This is what happened to him. This is exactly what happened to him. This is where he—
 > Far off, under the ice, out toward the Narrows, where the light from above fades to green and then to nothing, there is another light. Small. Faint. The colour of a lantern seen through a bottle.
 > And beside it, against the underside of the ice, a hand.
+@sfx knock
 > Small. Five fingers. Knocking.
 @sfx knock
 => un_feliks
@@ -177,6 +182,7 @@ FELIKS: *I can't.* Not sad. Simply true. *I'm not here, Aurel. I'm not anywhere.
 == un_f_hub
 THE COLD: or you could stay.
 THE COLD: it's warm now. they made it warm, the works, just for you. no more knocking. no more listening at the floor at night. you could finally stop.
+@sfx heartbeat
 > The rope at your waist is so taut it hums. Above you, somewhere up in the gold, someone is holding on with everything they have.
 FELIKS: *Somebody's holding the rope, Aurel.* The small hand, very far away, stops knocking. *Somebody's holding it this time.*
 ?{pass("KEEL", 10)} KEEL(10): Three tugs. That is all. Three tugs, and let them pull. You don't have to climb. You don't have to push. You only have to let yourself be *reached*.
@@ -199,11 +205,13 @@ FELIKS: *Don't be stupid, Aurel.* Very gently. *You've been stupid once already 
 == un_swim
 > You swim toward the hand. The rope pays out behind you — slowly, then less slowly — and then stops, and pulls, and you pull against it, toward the small lantern light and the small knocking hand, and the rope pulls back.
 @if holder == "ilse" && ilse >= 3
+@sfx rope
 > And then it does not stop pulling. It pulls and pulls and pulls, not three tugs, not anything agreed, just *pulling*, steadily, stubbornly, hand over hand, like a clerk who has decided that some things will not be omitted from the record. You are going backward. Up. Away from the hand.
 FELIKS: *There. You see?* The small light is going out, very far off, like a lantern carried round a corner. *Somebody's holding it.*
 @set ilse_pulled
 => un_up
 @elif holder == "aino" && aino >= 4
+@sfx rope
 > And then it does not stop pulling. It pulls and pulls — a girl with her heels braced on a stove and a rope round her back, who has done this before and lost, and will not lose twice. You are going backward. Up. Away from the hand.
 FELIKS: *There. You see?* The small light is going out, very far off. *She's closer.*
 @set aino_pulled
@@ -221,6 +229,7 @@ FELIKS: *There. You see?* The small light is going out, very far off. *Pull, and
 @bg black
 @music under
 > You swim toward the hand, and the hand swims toward you, and the lantern light grows, and grows, and it is not green any more but gold, warm, the gold of a kitchen at dusk forty-four winters ago, with bread on the table and your mother at the window, calling two names across the ice.
+@sfx knock
 > The last thing you hear, very faint, from far above, is three knocks on the ice. Somebody up there, knocking back. So you'll know that someone heard.
 THE COLD: there. there now. there.
 @gameover "You Stayed" "The Examiner of the Third Bench went under the ice on the last night of winter and did not come up. The Glass lost its Examiner before it lost its ice."
