@@ -1,0 +1,558 @@
+<title>Noisette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sniglet:wght@400;800&family=Mali:wght@400;500;600&display=swap">
+<style>
+/* One deliberate look: a garden at night, lit by a lantern. */
+:root {
+  color-scheme: dark;
+  --night: #172433;
+  --panel: #1f3244;
+  --panel-2: #283f54;
+  --rule: #34506a;
+  --cream: #f6ecd9;
+  --muted: #aab6bd;
+  --lantern: #f3bb6b;
+  --blush: #f4a6a0;
+  --display: "Sniglet", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --body: "Mali", "Trebuchet MS", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--night); color: var(--cream); font: 400 17px/1.55 var(--body); padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 18px; }
+header { padding-block: 36px 4px; display: grid; gap: 6px; }
+.eyebrow { font: 600 13px/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--lantern); margin: 0; }
+h1 { font: 800 clamp(46px, 9vw, 76px)/1 var(--display); margin: 0; }
+h2 { font: 800 22px/1.2 var(--display); margin: 0; color: var(--lantern); }
+p { margin: 0; }
+.sub { color: var(--muted); max-width: 56ch; }
+
+.scene { position: relative; border-radius: 22px; overflow: hidden; background: #22384c; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+canvas { display: block; width: 100%; touch-action: none; cursor: pointer; }
+.status {
+  position: absolute; left: 14px; top: 12px; right: 14px; pointer-events: none;
+  font: 500 15px/1.35 var(--body); color: var(--cream); text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+
+.tray { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tray .lbl { font-weight: 600; color: var(--muted); margin-right: 4px; }
+.food {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font: 500 15px/1 var(--body); color: var(--cream); background: var(--panel);
+  border: 2px solid var(--rule); border-radius: 999px; padding: 7px 14px 7px 8px;
+}
+.food svg { width: 28px; height: 22px; flex: none; }
+.food:hover { border-color: var(--lantern); }
+.food[aria-pressed="true"] { background: var(--lantern); color: var(--night); border-color: var(--lantern); }
+.food:focus-visible, input:focus-visible { outline: 3px solid var(--blush); outline-offset: 2px; }
+.hint { color: var(--muted); font-size: 15px; min-height: 1.5em; }
+
+.below { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; margin-top: 6px; }
+@media (max-width: 720px) { .below { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--panel); border-radius: 18px; padding: 18px 20px; display: grid; gap: 12px; align-content: start; }
+.box ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.box li::marker { color: var(--lantern); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--panel-2); border-radius: 14px; padding: 10px; text-align: center; }
+.stat b { display: block; font: 800 28px/1.1 var(--display); color: var(--cream); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+label { font-weight: 600; color: var(--muted); font-size: 14px; }
+input[type=text] {
+  width: 100%; font: 500 17px var(--body); color: var(--cream); background: var(--panel-2);
+  border: 2px solid var(--rule); border-radius: 12px; padding: 9px 12px;
+}
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.fact { border-top: 2px dotted var(--rule); padding-top: 10px; font-size: 15px; color: var(--muted); }
+.fact b { color: var(--cream); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Jardin de nuit</p>
+    <h1 id="title">Noisette</h1>
+    <p class="sub">Un hérisson vit dans ce jardin. Il sort la nuit, adore les insectes et se roule en boule quand on le surprend. Sois doux.</p>
+  </header>
+
+  <div class="scene">
+    <canvas id="scene" aria-label="Un jardin la nuit, avec un hérisson"></canvas>
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+
+  <div class="tray" role="group" aria-label="Déposer à manger">
+    <span class="lbl">Déposer :</span>
+    <button class="food" data-food="croquette" aria-pressed="false"><svg viewBox="0 0 28 22"><circle cx="8" cy="14" r="5" fill="#8b5a2b"/><circle cx="18" cy="15" r="5" fill="#9c6a35"/><circle cx="13" cy="7" r="5" fill="#7d4f24"/></svg>Croquettes</button>
+    <button class="food" data-food="ver" aria-pressed="false"><svg viewBox="0 0 28 22"><path d="M3 14 q4 -8 8 0 t8 0 t7 -2" fill="none" stroke="#ec9c9c" stroke-width="4" stroke-linecap="round"/></svg>Ver de terre</button>
+    <button class="food" data-food="scarabee" aria-pressed="false"><svg viewBox="0 0 28 22"><g stroke="#1d2b25" stroke-width="1.5"><path d="M8 7 l-4 -3 M8 11 h-5 M8 15 l-4 3 M20 7 l4 -3 M20 11 h5 M20 15 l4 3"/></g><ellipse cx="14" cy="11" rx="7" ry="8" fill="#2f6a57"/><circle cx="14" cy="3" r="3" fill="#1d2b25"/><path d="M14 4 v14" stroke="#1d2b25"/></svg>Scarabée</button>
+    <button class="food" data-food="eau" aria-pressed="false"><svg viewBox="0 0 28 22"><ellipse cx="14" cy="13" rx="12" ry="6" fill="#d4dde0"/><ellipse cx="14" cy="12" rx="9" ry="3.5" fill="#6fb3d9"/></svg>Eau</button>
+    <button class="food" data-food="lait" aria-pressed="false"><svg viewBox="0 0 28 22"><ellipse cx="14" cy="13" rx="12" ry="6" fill="#d4dde0"/><ellipse cx="14" cy="12" rx="9" ry="3.5" fill="#fffdf6"/></svg>Lait</button>
+  </div>
+  <p class="hint" id="hint">Choisis quelque chose, puis touche l'herbe pour le déposer.</p>
+
+  <div class="below">
+    <div class="box">
+      <h2>Comment s'y prendre</h2>
+      <ul>
+        <li>Touche l'herbe : <span class="nm">Noisette</span> trottine jusque-là et renifle.</li>
+        <li>Passe doucement la souris (ou le doigt) sur son dos pour une caresse.</li>
+        <li>Un petit coup sec, et c'est la boule de piquants. Il faut attendre qu'elle se déroule.</li>
+        <li>Laisse le jardin tranquille un moment : sieste dans le tas de feuilles.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h2>Carnet</h2>
+      <div class="stats">
+        <div class="stat"><b id="sMeals">0</b><span>repas</span></div>
+        <div class="stat"><b id="sPets">0</b><span>caresses</span></div>
+        <div class="stat"><b id="sNaps">0</b><span>siestes</span></div>
+      </div>
+      <label for="name">Son nom</label>
+      <input type="text" id="name" maxlength="16" value="Noisette" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="facts">
+    <p class="fact"><b>5 000 à 7 000 piquants</b> couvrent le dos d'un hérisson d'Europe.</p>
+    <p class="fact"><b>Jusqu'à 2 km par nuit</b> : il parcourt les jardins à la recherche d'insectes.</p>
+    <p class="fact"><b>Pas de lait.</b> Les hérissons digèrent mal le lactose. Une coupelle d'eau leur fait plus plaisir.</p>
+    <p class="fact"><b>En hiver</b>, il hiberne dans un nid de feuilles mortes. Laisse un coin du jardin en désordre.</p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+const cv = $("scene"), g = cv.getContext("2d");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- Saved per-viewer notebook ----------
+const KEY = "noisette-v1";
+let book = { name: "Noisette", meals: 0, pets: 0, naps: 0 };
+try { Object.assign(book, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(book)); } catch (e) {} };
+const name = () => book.name.trim() || "Noisette";
+function renderBook() {
+  $("title").textContent = name();
+  document.querySelectorAll(".nm").forEach(n => n.textContent = name());
+  $("sMeals").textContent = book.meals; $("sPets").textContent = book.pets; $("sNaps").textContent = book.naps;
+}
+$("name").value = book.name;
+$("name").addEventListener("input", e => { book.name = e.target.value; save(); renderBook(); });
+
+let statusTimer = 0;
+function say(text) { $("status").textContent = text.replaceAll("{n}", name()); statusTimer = 0; }
+
+// ---------- World ----------
+let W = 800, H = 480, GROUND = 250, view = 1, bg = null;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const depth = y => (0.72 + 0.5 * (y - GROUND) / (H - GROUND)) * (W === 800 ? 1.3 : 1.1);
+const clampX = x => Math.max(50, Math.min(W - 50, x));
+const clampY = y => Math.max(GROUND + 36, Math.min(H - 22, y));
+let pile, leaves = [], fireflies = [];
+
+function layout() {
+  const w = cv.parentElement.clientWidth;
+  const oldW = W, oldH = H;
+  W = w >= 640 ? 800 : 480; H = W === 800 ? 470 : 560; GROUND = H * (W === 800 ? 0.5 : 0.46);
+  const scale = w / W, dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(H * scale * dpr);
+  cv.style.height = H * scale + "px";
+  view = scale * dpr;
+  pile = { x: W * 0.16, y: H * 0.8 };
+  const r = rng(7); leaves = [];
+  const colors = ["#c8733a", "#e0a346", "#8f4f2a", "#b5602e", "#d98b3f", "#7a4a2a"];
+  for (let i = 0; i < 70; i++) {
+    const a = r() * Math.PI, d = Math.sqrt(r());
+    leaves.push({ x: Math.cos(a) * 62 * d * (r() < .5 ? -1 : 1), y: -Math.sin(a) * 30 * d + 4, rot: r() * TAU, c: colors[i % colors.length], front: r() < 0.35 });
+  }
+  if (hog) {
+    hog.x = clampX(hog.x / oldW * W); hog.y = clampY(GROUND + (hog.y - GROUND) / (oldH - GROUND) * (H - GROUND));
+    if (hog.state === "sleep") { hog.x = pile.x + 8; hog.y = pile.y; }
+  }
+  renderBg();
+}
+
+function renderBg() {
+  bg = document.createElement("canvas"); bg.width = cv.width; bg.height = cv.height;
+  const b = bg.getContext("2d"); b.setTransform(view, 0, 0, view, 0, 0);
+  const r = rng(3);
+  let sky = b.createLinearGradient(0, 0, 0, GROUND);
+  sky.addColorStop(0, "#15233a"); sky.addColorStop(1, "#35566b");
+  b.fillStyle = sky; b.fillRect(0, 0, W, GROUND + 2);
+  for (let i = 0; i < 60; i++) { b.fillStyle = `rgba(255,248,225,${0.25 + r() * 0.6})`; b.beginPath(); b.arc(r() * W, r() * GROUND * 0.75, r() * 1.2 + 0.3, 0, TAU); b.fill(); }
+  const mx = W * 0.8, my = H * 0.15;
+  const glow = b.createRadialGradient(mx, my, 10, mx, my, 90); glow.addColorStop(0, "rgba(250,238,196,.35)"); glow.addColorStop(1, "rgba(250,238,196,0)");
+  b.fillStyle = glow; b.fillRect(mx - 90, my - 90, 180, 180);
+  b.fillStyle = "#f6edcc"; b.beginPath(); b.arc(mx, my, 24, 0, TAU); b.fill();
+  b.fillStyle = "rgba(200,190,160,.35)"; [[-7, -5, 5], [8, 6, 4], [3, -10, 2.5]].forEach(([x, y, rr]) => { b.beginPath(); b.arc(mx + x, my + y, rr, 0, TAU); b.fill(); });
+  // Hedge silhouettes
+  b.fillStyle = "#1f3a38"; b.beginPath(); b.moveTo(0, GROUND + 4);
+  for (let x = 0; x <= W + 30; x += 30) b.quadraticCurveTo(x + 15, GROUND - 26 - r() * 30, x + 30, GROUND + 4);
+  b.lineTo(W, GROUND + 10); b.lineTo(0, GROUND + 10); b.fill();
+  // Fence
+  b.fillStyle = "#2e3f45";
+  for (let x = W * 0.45; x < W * 0.95; x += 26) { b.fillRect(x, GROUND - 38, 12, 46); b.beginPath(); b.moveTo(x, GROUND - 38); b.lineTo(x + 6, GROUND - 46); b.lineTo(x + 12, GROUND - 38); b.fill(); }
+  b.fillRect(W * 0.45 - 6, GROUND - 26, W * 0.5, 5);
+  // Grass
+  let grass = b.createLinearGradient(0, GROUND, 0, H);
+  grass.addColorStop(0, "#2f5a3e"); grass.addColorStop(1, "#3f7149");
+  b.fillStyle = grass; b.fillRect(0, GROUND, W, H - GROUND);
+  b.lineCap = "round";
+  for (let i = 0; i < 260; i++) {
+    const x = r() * W, y = GROUND + 6 + r() * (H - GROUND), s = depth(y);
+    b.strokeStyle = r() < .5 ? "rgba(120,170,100,.5)" : "rgba(40,80,50,.6)"; b.lineWidth = 1.4 * s;
+    b.beginPath(); b.moveTo(x, y); b.quadraticCurveTo(x + 2, y - 6 * s, x + (r() - .5) * 8, y - 11 * s); b.stroke();
+  }
+  // Daisies
+  for (let i = 0; i < 14; i++) {
+    const x = r() * W, y = GROUND + 20 + r() * (H - GROUND - 30), s = depth(y) * 0.9;
+    if (Math.abs(x - pile.x) < 80 && Math.abs(y - pile.y) < 40) continue;
+    b.fillStyle = "#f4f1e6"; for (let p = 0; p < 6; p++) { const a = p / 6 * TAU; b.beginPath(); b.ellipse(x + Math.cos(a) * 3.2 * s, y + Math.sin(a) * 3.2 * s, 2.4 * s, 1.5 * s, a, 0, TAU); b.fill(); }
+    b.fillStyle = "#f2c14e"; b.beginPath(); b.arc(x, y, 1.8 * s, 0, TAU); b.fill();
+  }
+  // Leaf pile (back leaves)
+  drawLeaves(b, false);
+}
+function drawLeaves(c, front) {
+  c.save(); c.translate(pile.x, pile.y);
+  if (!front) { c.fillStyle = "rgba(20,30,20,.3)"; c.beginPath(); c.ellipse(0, 6, 72, 12, 0, 0, TAU); c.fill(); }
+  for (const l of leaves) {
+    if (l.front !== front) continue;
+    c.save(); c.translate(l.x, l.y); c.rotate(l.rot);
+    c.fillStyle = l.c; c.beginPath(); c.ellipse(0, 0, 11, 5.5, 0, 0, TAU); c.fill();
+    c.strokeStyle = "rgba(60,30,10,.45)"; c.lineWidth = 1; c.beginPath(); c.moveTo(-10, 0); c.lineTo(10, 0); c.stroke();
+    c.restore();
+  }
+  c.restore();
+}
+
+// ---------- The hedgehog ----------
+const COL = { coat: "#6e5039", spine: "#553b29", tip: "#e7d3b0", body: "#9b7555", face: "#f1dcbd", foot: "#4a3526", ear: "#c9998a", blush: "rgba(244,150,145,.6)", nose: "#1c1512" };
+function makeSpikes(layers, from, to, seed) {
+  const r = rng(seed), out = [];
+  for (const [k, n] of layers) for (let i = 0; i < n; i++) {
+    const a = from + (to - from) * (i + r() * 0.6) / n;
+    out.push({ k, a, len: (11 + r() * 6) * (k < 1 ? 0.8 : 1), w: 6 + r() * 2 });
+  }
+  return out;
+}
+const BODY_SPIKES = makeSpikes([[1, 30], [0.84, 24], [0.66, 16]], Math.PI * 0.8, Math.PI * 1.9, 11);
+const BALL_SPIKES = makeSpikes([[1, 40], [0.78, 30], [0.52, 16]], 0, TAU, 5);
+
+function spikes(list, cx, cy, rx, ry) {
+  for (const s of list) {
+    const bx = cx + Math.cos(s.a) * rx * s.k, by = cy + Math.sin(s.a) * ry * s.k;
+    let nx = Math.cos(s.a) / rx, ny = Math.sin(s.a) / ry; const m = Math.hypot(nx, ny); nx /= m; ny /= m;
+    const px = -ny, py = nx, tx = bx + nx * s.len, ty = by + ny * s.len;
+    g.fillStyle = COL.spine; g.beginPath();
+    g.moveTo(bx + px * s.w / 2, by + py * s.w / 2); g.lineTo(tx, ty); g.lineTo(bx - px * s.w / 2, by - py * s.w / 2); g.fill();
+    g.fillStyle = COL.tip; g.beginPath();
+    g.moveTo(bx + nx * s.len * 0.62 + px * s.w * 0.2, by + ny * s.len * 0.62 + py * s.w * 0.2); g.lineTo(tx, ty);
+    g.lineTo(bx + nx * s.len * 0.62 - px * s.w * 0.2, by + ny * s.len * 0.62 - py * s.w * 0.2); g.fill();
+  }
+}
+
+function eye(x, y, mood) {
+  g.strokeStyle = COL.nose; g.fillStyle = COL.nose; g.lineWidth = 2; g.lineCap = "round";
+  if (mood === "closed") { g.beginPath(); g.arc(x, y, 3.2, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); return; }
+  if (mood === "happy") { g.beginPath(); g.arc(x, y + 2, 3.4, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke(); return; }
+  g.beginPath(); g.arc(x, y, 3.4, 0, TAU); g.fill();
+  g.fillStyle = "#fff"; g.beginPath(); g.arc(x + 1.1, y - 1.2, 1.1, 0, TAU); g.fill();
+}
+
+let hog = null, T = 0;
+function drawHog(h) {
+  const s = depth(h.y);
+  g.save(); g.translate(h.x, h.y);
+  g.fillStyle = "rgba(15,30,20,.3)"; g.beginPath(); g.ellipse(0, 1, 44 * s, 8 * s, 0, 0, TAU); g.fill();
+  g.scale(s * h.dir, s);
+  const ball = h.state === "curl" || h.state === "sleep" || h.state === "peek";
+  if (ball) drawBall(h); else drawStanding(h);
+  g.restore();
+}
+function drawBall(h) {
+  const breathe = h.state === "sleep" ? 1 + Math.sin(T * 1.6) * 0.03 : 1;
+  const shiver = h.state === "curl" && h.t < 0.5 ? Math.sin(T * 60) * 1.2 : 0;
+  g.save(); g.translate(shiver, 0); g.scale(breathe, breathe);
+  g.fillStyle = COL.coat; g.beginPath(); g.ellipse(0, -27, 30, 27, 0, 0, TAU); g.fill();
+  spikes(BALL_SPIKES, 0, -27, 30, 27);
+  if (h.state !== "curl") {  // a bit of face peeking out at the front
+    g.fillStyle = COL.face; g.beginPath(); g.ellipse(24, -12, 13, 10, -0.3, 0, TAU); g.fill();
+    g.fillStyle = COL.nose; g.beginPath(); g.arc(35, -9, 3.6, 0, TAU); g.fill();
+    g.fillStyle = COL.blush; g.beginPath(); g.ellipse(25, -8, 4, 2.5, 0, 0, TAU); g.fill();
+    eye(24, -15, h.state === "sleep" ? "closed" : "open");
+  }
+  g.restore();
+}
+function drawStanding(h) {
+  const walking = h.state === "walk";
+  const breathe = 1 + Math.sin(T * 2.2) * 0.018;
+  const step = walking ? h.phase : 0;
+  // feet
+  g.fillStyle = COL.foot;
+  [[-24, 0], [-10, Math.PI], [16, Math.PI], [30, 0]].forEach(([x, ph]) => {
+    const lift = walking ? Math.max(0, Math.sin(step + ph)) * 4 : 0;
+    g.beginPath(); g.ellipse(x + (walking ? Math.cos(step + ph) * 3 : 0), -3 - lift, 7, 4.5, 0, 0, TAU); g.fill();
+  });
+  const bob = walking ? Math.abs(Math.sin(step)) * -2 : 0;
+  g.save(); g.translate(0, bob); g.scale(1, breathe);
+  g.fillStyle = COL.body; g.beginPath(); g.ellipse(4, -15, 40, 14, 0, 0, TAU); g.fill();
+  g.fillStyle = COL.coat; g.beginPath(); g.ellipse(-4, -26, 40, 27, 0, 0, TAU); g.fill();
+  spikes(BODY_SPIKES, -4, -26, 40, 27);
+  // head
+  let hx = 0, hy = 0, rot = 0;
+  if (h.state === "eat" || h.state === "drink") hy = 6 + Math.sin(T * 16) * 1.6;
+  if (h.state === "sniff") rot = Math.sin(T * 9) * 0.05;
+  if (h.state === "refuse") rot = Math.sin(T * 18) * 0.16;
+  if (h.state === "happy") hy = Math.sin(T * 4) * 1;
+  g.save(); g.translate(26 + hx, -18 + hy); g.rotate(rot); g.translate(-26, 18);
+  g.fillStyle = COL.ear; g.beginPath(); g.arc(24, -33, 5.5, 0, TAU); g.fill();
+  g.fillStyle = COL.face;
+  g.beginPath(); g.arc(30, -20, 15, 0, TAU); g.fill();
+  g.beginPath(); g.ellipse(45, -13, 16, 9, 0.2, 0, TAU); g.fill();
+  const twitch = h.state === "sniff" || h.state === "refuse" ? Math.sin(T * 30) * 0.9 : Math.sin(T * 3) * 0.3;
+  g.fillStyle = COL.nose; g.beginPath(); g.arc(59 + twitch, -10, 4.2, 0, TAU); g.fill();
+  g.fillStyle = "rgba(255,255,255,.7)"; g.beginPath(); g.arc(58 + twitch, -11.5, 1.2, 0, TAU); g.fill();
+  g.fillStyle = COL.blush; g.beginPath(); g.ellipse(41, -9, 5, 3, 0, 0, TAU); g.fill();
+  const mood = h.state === "happy" || h.state === "yum" ? "happy" : h.blink > 0 || h.state === "yawn" ? "closed" : "open";
+  eye(37, -22, mood);
+  g.strokeStyle = COL.nose; g.lineWidth = 1.6; g.lineCap = "round";
+  if (h.state === "yawn") { g.fillStyle = "#7a3b3b"; g.beginPath(); g.ellipse(50, -4, 3.5, 4.5 * Math.min(1, h.t * 2), 0, 0, TAU); g.fill(); }
+  else if (h.state === "eat" || h.state === "drink") { g.beginPath(); g.arc(51, -5, 2.5, 0, Math.PI * (Math.sin(T * 16) > 0 ? 1 : 0.4)); g.stroke(); }
+  else if (h.state === "happy" || h.state === "yum") { g.beginPath(); g.arc(50, -7, 3, 0.1 * Math.PI, 0.9 * Math.PI); g.stroke(); }
+  g.restore();
+  g.restore();
+}
+
+// ---------- Food ----------
+let foods = [], selected = null;
+const FOOD_TEXT = {
+  croquette: "{n} croque une croquette. Miam.",
+  ver: "Un ver de terre ! {n} l'aspire comme un spaghetti.",
+  scarabee: "Un scarabée bien croustillant. Le préféré de {n}.",
+  eau: "{n} boit à petites gorgées. Slurp.",
+  lait: "{n} renifle le lait et fait demi-tour. Les hérissons digèrent mal le lactose : de l'eau, oui ; du lait, non.",
+};
+function drawFood(f) {
+  const s = depth(f.y) * (1 - f.eaten), y = f.y - f.h;
+  if (s <= 0.02) return;
+  g.save(); g.translate(f.x, y); g.scale(s, s);
+  g.fillStyle = "rgba(15,30,20,.25)"; g.beginPath(); g.ellipse(0, f.h / s + 2, 12, 3, 0, 0, TAU); g.fill();
+  if (f.kind === "croquette") {
+    [[-6, 0, "#8b5a2b"], [5, 1, "#9c6a35"], [0, -6, "#7d4f24"]].forEach(([x, yy, c]) => { g.fillStyle = c; g.beginPath(); g.arc(x, yy, 4.6, 0, TAU); g.fill(); g.fillStyle = "rgba(255,230,190,.35)"; g.beginPath(); g.arc(x - 1.4, yy - 1.4, 1.4, 0, TAU); g.fill(); });
+  } else if (f.kind === "ver") {
+    g.strokeStyle = "#ec9c9c"; g.lineWidth = 4; g.lineCap = "round"; g.beginPath();
+    for (let i = 0; i <= 10; i++) { const x = -12 + i * 2.4, yy = Math.sin(T * 5 + i * 0.8) * 2.6; i ? g.lineTo(x, yy) : g.moveTo(x, yy); }
+    g.stroke();
+  } else if (f.kind === "scarabee") {
+    g.strokeStyle = "#1d2b25"; g.lineWidth = 1.4;
+    for (const sx of [-1, 1]) for (const k of [-1, 0, 1]) { g.beginPath(); g.moveTo(sx * 5, k * 4); g.lineTo(sx * 10, k * 5 + Math.sin(T * 12 + k) * 1.2); g.stroke(); }
+    g.fillStyle = "#2f6a57"; g.beginPath(); g.ellipse(0, 0, 6.5, 7.5, 0, 0, TAU); g.fill();
+    g.fillStyle = "rgba(160,230,200,.35)"; g.beginPath(); g.ellipse(-2, -2, 2, 3, 0.3, 0, TAU); g.fill();
+    g.fillStyle = "#1d2b25"; g.beginPath(); g.arc(0, -8, 3, 0, TAU); g.fill();
+  } else {
+    g.fillStyle = "#d4dde0"; g.beginPath(); g.ellipse(0, 0, 14, 6, 0, 0, TAU); g.fill();
+    g.fillStyle = f.kind === "eau" ? "#6fb3d9" : "#fffdf6"; g.beginPath(); g.ellipse(0, -1, 10.5, 3.8, 0, 0, TAU); g.fill();
+  }
+  g.restore();
+}
+
+// ---------- Particles ----------
+let parts = [];
+function heart(x, y) { parts.push({ kind: "heart", x: x + (Math.random() - .5) * 20, y, vx: (Math.random() - .5) * 14, vy: -32, life: 1.6, max: 1.6 }); }
+function drawParticle(p) {
+  const a = Math.min(1, p.life / p.max * 1.6);
+  g.save(); g.globalAlpha = a; g.translate(p.x, p.y);
+  if (p.kind === "heart") {
+    g.fillStyle = "#f4a6a0"; g.beginPath(); g.moveTo(0, 4);
+    g.bezierCurveTo(-8, -3, -4, -10, 0, -5); g.bezierCurveTo(4, -10, 8, -3, 0, 4); g.fill();
+  } else if (p.kind === "z") {
+    g.fillStyle = "#f6ecd9"; g.font = `800 ${p.size}px ${getComputedStyle(document.body).getPropertyValue("--display") || "sans-serif"}`; g.fillText("z", 0, 0);
+  } else if (p.kind === "crumb") {
+    g.fillStyle = p.c; g.beginPath(); g.arc(0, 0, 1.8, 0, TAU); g.fill();
+  } else if (p.kind === "puff") {
+    g.fillStyle = "rgba(246,236,217,.5)"; g.beginPath(); g.arc(0, 0, 4 + (1 - p.life / p.max) * 6, 0, TAU); g.fill();
+  }
+  g.restore();
+}
+
+// ---------- Behaviour ----------
+hog = { x: 0, y: 0, dir: 1, state: "idle", t: 0, phase: 0, blink: 0, nextBlink: 2, target: null, onArrive: null, wait: 2, petted: 0 };
+let lastTouch = 0, zTimer = 0;
+function setState(s) { hog.state = s; hog.t = 0; }
+function walkTo(x, y, then) {
+  hog.target = { x: clampX(x), y: clampY(y) }; hog.onArrive = then; setState("walk");
+}
+function nearestFood() {
+  let best = null, bd = 1e9;
+  for (const f of foods) if (f.h === 0 && !f.done && !f.claimed && !f.refused) { const d = Math.hypot(f.x - hog.x, f.y - hog.y); if (d < bd) { bd = d; best = f; } }
+  return best;
+}
+function goEat(f) {
+  f.claimed = true;
+  say(f.kind === "lait" ? "{n} a senti quelque chose…" : "{n} a senti quelque chose de bon !");
+  walkTo(f.x - 52 * depth(f.y) * Math.sign(f.x - hog.x || 1), f.y, () => {
+    hog.dir = Math.sign(f.x - hog.x) || hog.dir;
+    hog.food = f;
+    say(FOOD_TEXT[f.kind]);
+    if (f.kind === "lait") { setState("refuse"); f.claimed = false; f.refused = true; }
+    else setState(f.kind === "eau" ? "drink" : "eat");
+  });
+}
+
+function update(dt) {
+  T += dt; hog.t += dt; lastTouch += dt; statusTimer += dt;
+  // blinking
+  hog.nextBlink -= dt; if (hog.nextBlink <= 0) { hog.blink = 0.14; hog.nextBlink = 2.5 + Math.random() * 3; }
+  if (hog.blink > 0) hog.blink -= dt;
+
+  // food falls
+  for (const f of foods) if (f.h > 0) { f.vh -= 420 * dt; f.h = Math.max(0, f.h + f.vh * dt); if (f.h === 0 && Math.abs(f.vh) > 60) { f.vh = -f.vh * 0.3; f.h = 0.01; } }
+  foods = foods.filter(f => !f.done || f.eaten < 1);
+
+  const h = hog, s = depth(h.y);
+  switch (h.state) {
+    case "walk": {
+      const dx = h.target.x - h.x, dy = h.target.y - h.y, d = Math.hypot(dx, dy), v = 78 * s;
+      if (Math.abs(dx) > 2) h.dir = Math.sign(dx);
+      h.phase += dt * 11;
+      if (d < v * dt + 1) { h.x = h.target.x; h.y = h.target.y; const cb = h.onArrive; h.onArrive = null; setState("idle"); h.wait = 1.5 + Math.random() * 2; if (cb) cb(); }
+      else { h.x += dx / d * v * dt; h.y += dy / d * v * dt; }
+      break;
+    }
+    case "sniff": if (h.t > 1.5) { setState("idle"); h.wait = 2 + Math.random() * 3; } break;
+    case "eat": case "drink": {
+      const f = h.food, dur = h.state === "drink" ? 2.4 : 1.8;
+      if (f) { f.eaten = Math.min(1, h.t / dur * (h.state === "drink" ? 0.85 : 1)); if (h.state === "eat" && Math.random() < dt * 14) parts.push({ kind: "crumb", c: "#b08050", x: f.x + (Math.random() - .5) * 10, y: f.y - 6, vx: (Math.random() - .5) * 40, vy: -40, life: .6, max: .6, g: 1 }); }
+      if (h.t > dur) {
+        if (f) { f.done = true; f.eaten = 1; }
+        book.meals++; save(); renderBook();
+        setState("yum"); heart(h.x + 30 * s * h.dir, h.y - 55 * s);
+      }
+      break;
+    }
+    case "yum": if (h.t > 1.2) { setState("idle"); h.wait = 1; say(book.meals % 3 === 0 ? "{n} a le ventre plein. Encore un petit tour et ce sera la sieste." : "{n} se lèche le museau."); } break;
+    case "refuse": if (h.t > 1.8) { h.dir *= -1; walkTo(h.x - h.dir * -90, h.y + (Math.random() - .5) * 40, () => { setState("sniff"); }); } break;
+    case "curl": if (h.t > 2.6) { setState("peek"); say("{n} jette un œil prudent…"); } break;
+    case "peek": if (h.t > 1.1) { setState("idle"); h.wait = 2; say("Fausse alerte. {n} se déroule."); } break;
+    case "happy": if (h.t > 1.4) { setState("idle"); h.wait = 2.5; } break;
+    case "yawn": if (h.t > 1.3) { setState("idle"); h.wait = 1.5; say("{n} s'étire et reprend sa ronde."); } break;
+    case "sleep":
+      zTimer += dt;
+      if (zTimer > 1.1) { zTimer = 0; parts.push({ kind: "z", x: h.x + 26, y: h.y - 50, vx: 10, vy: -18, life: 2.2, max: 2.2, size: 12 + Math.random() * 6 }); }
+      break;
+    case "idle": {
+      const f = nearestFood();
+      if (f) { goEat(f); break; }
+      h.wait -= dt;
+      if (lastTouch > 22 && !foods.some(x => !x.done && !x.refused)) {
+        say("{n} bâille et file vers le tas de feuilles…");
+        walkTo(pile.x + 8, pile.y, () => { setState("sleep"); book.naps++; save(); renderBook(); say("{n} dort dans les feuilles. Chut."); });
+        h.target.y = pile.y;
+        break;
+      }
+      if (h.wait <= 0) {
+        if (Math.random() < 0.4) { setState("sniff"); say(["{n} renifle l'herbe. Snif snif.", "{n} cherche des insectes.", "{n} écoute les bruits de la nuit."][Math.floor(Math.random() * 3)]); }
+        else walkTo(h.x + (Math.random() - .5) * 260, h.y + (Math.random() - .5) * 90, () => {});
+        h.wait = 3 + Math.random() * 4;
+      }
+    }
+  }
+  // particles
+  for (const p of parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.g) p.vy += 200 * dt; }
+  parts = parts.filter(p => p.life > 0);
+  for (const f of fireflies) { f.a += dt * f.s; f.x += Math.cos(f.a * 0.7) * 12 * dt; f.y += Math.sin(f.a) * 8 * dt; }
+}
+
+function render() {
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.drawImage(bg, 0, 0);
+  g.setTransform(view, 0, 0, view, 0, 0);
+  for (const f of fireflies) {
+    const x = ((f.x % W) + W) % W, glow = reduce ? 0.7 : 0.4 + 0.6 * Math.max(0, Math.sin(f.a * 1.7));
+    const rg = g.createRadialGradient(x, f.y, 0, x, f.y, 10);
+    rg.addColorStop(0, `rgba(250,230,130,${glow})`); rg.addColorStop(1, "rgba(250,230,130,0)");
+    g.fillStyle = rg; g.fillRect(x - 10, f.y - 10, 20, 20);
+  }
+  const drawables = [...foods.map(f => ({ y: f.y, draw: () => drawFood(f) })), { y: hog.y, draw: () => drawHog(hog) }];
+  drawables.sort((a, b) => a.y - b.y).forEach(d => d.draw());
+  if (hog.state === "sleep") drawLeaves(g, true);
+  for (const p of parts) drawParticle(p);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt); render();
+  requestAnimationFrame(loop);
+}
+
+// ---------- Pointer ----------
+const toWorld = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
+function onHog(x, y) {
+  const s = depth(hog.y);
+  return ((x - hog.x - 8 * s * hog.dir) / (52 * s)) ** 2 + ((y - hog.y + 26 * s) / (36 * s)) ** 2 < 1;
+}
+let press = null, lastMove = null, petDist = 0;
+cv.addEventListener("pointerdown", e => {
+  const [x, y] = toWorld(e); lastTouch = 0;
+  if (hog.state === "sleep") { setState("yawn"); say("{n} se réveille en bâillant."); return; }
+  if (onHog(x, y)) { press = { t: performance.now(), x, y, moved: 0 }; cv.setPointerCapture(e.pointerId); return; }
+  if (selected) {
+    const fx = clampX(x), fy = clampY(y);
+    foods.push({ kind: selected, x: fx, y: fy, h: 60, vh: 0, eaten: 0 });
+    parts.push({ kind: "puff", x: fx, y: fy - 4, vx: 0, vy: 0, life: .5, max: .5 });
+    select(null); $("hint").textContent = "Déposé. Laisse-le venir.";
+    if (["curl", "peek", "yawn"].includes(hog.state)) return;
+    if (!["eat", "drink", "yum"].includes(hog.state)) setState("idle");
+    return;
+  }
+  if (["curl", "peek", "eat", "drink", "yum", "yawn"].includes(hog.state)) return;
+  walkTo(x, y, () => { setState("sniff"); say("{n} renifle l'endroit. Rien à manger, mais ça sent bon."); });
+  say("{n} trottine.");
+});
+cv.addEventListener("pointermove", e => {
+  const [x, y] = toWorld(e), now = performance.now();
+  if (press) press.moved += lastMove ? Math.hypot(x - lastMove.x, y - lastMove.y) : 0;
+  const petting = (press || e.pointerType === "mouse") && onHog(x, y) && ["idle", "sniff", "happy", "walk", "yum"].includes(hog.state);
+  if (petting && lastMove) {
+    const d = Math.hypot(x - lastMove.x, y - lastMove.y), speed = d / Math.max(1, now - lastMove.t) * 1000;
+    if (speed < 900) petDist += d;
+    if (petDist > 110) {
+      petDist = 0; lastTouch = 0;
+      if (hog.state === "walk") hog.onArrive = null;
+      if (hog.state !== "happy") say(["{n} ferme les yeux. Quel bonheur.", "{n} adore ça.", "Ron ron ? Non, {n} est un hérisson. Mais presque."][book.pets % 3]);
+      setState("happy");
+      heart(hog.x + 10 * hog.dir, hog.y - 60 * depth(hog.y));
+      book.pets++; save(); renderBook();
+    }
+  }
+  lastMove = { x, y, t: now };
+});
+cv.addEventListener("pointerup", () => {
+  if (press && performance.now() - press.t < 280 && press.moved < 8 && !["curl", "peek", "sleep"].includes(hog.state)) {
+    if (hog.food && !hog.food.done && (hog.state === "eat" || hog.state === "drink")) hog.food.claimed = false;
+    setState("curl"); say("Pouf ! {n} se roule en boule. Doucement…");
+  }
+  press = null;
+});
+cv.addEventListener("pointerleave", () => { lastMove = null; });
+
+function select(kind) {
+  selected = kind;
+  document.querySelectorAll(".food").forEach(b => b.setAttribute("aria-pressed", b.dataset.food === kind));
+}
+document.querySelectorAll(".food").forEach(b => b.addEventListener("click", () => {
+  select(selected === b.dataset.food ? null : b.dataset.food);
+  $("hint").textContent = selected ? "Touche l'herbe pour le déposer." : "Choisis quelque chose, puis touche l'herbe pour le déposer.";
+}));
+
+// ---------- Start ----------
+layout();
+hog.x = pile.x + 70; hog.y = pile.y - 10; hog.dir = 1;
+{ const r = rng(21); for (let i = 0; i < 12; i++) fireflies.push({ x: r() * W, y: GROUND - 60 + r() * (H - GROUND + 20), a: r() * TAU, s: 0.6 + r() * 0.8 }); }
+renderBook();
+say("{n} sort de sous les feuilles et regarde autour.");
+setState("sniff");
+new ResizeObserver(() => { const w = cv.parentElement.clientWidth; if (Math.round(w) !== Math.round(cv.width / (window.devicePixelRatio || 1))) layout(); }).observe(cv.parentElement);
+requestAnimationFrame(loop);
+</script>
