@@ -452,6 +452,7 @@
     else if (C.painter) C.painter.show(key);
   }
   function setBg(key) {
+    if (stage && !(S && S.insert)) stage.classList.remove('insert');
     if (key === bgKey) return;
     bgKey = key;
     paintScene(key);
@@ -460,6 +461,7 @@
   // A close-up (a "semi-décor") held for the length of a passage; the scene
   // returns when the player next chooses.
   function showInsert(key) {
+    stage.classList.add('insert');
     if (key === bgKey) return;
     bgKey = key;
     paintScene(key);
@@ -468,6 +470,7 @@
   function clearInsert() {
     if (!S || !S.insert) return;
     S.insert = null;
+    stage.classList.remove('insert');
     if (S.bg && bgKey !== S.bg) { bgKey = S.bg; paintScene(S.bg); if (C.audio && C.audio.insert) C.audio.insert(null, S.v); }
   }
   function setGraphics(mode) {

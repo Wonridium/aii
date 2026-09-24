@@ -364,3 +364,12 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--rule); 
   *, *::before, *::after { animation: none !important; transition: none !important; }
   #scroll { scroll-behavior: auto; }
 }
+
+/* close-ups: the frame narrows like a lens, the weather stays outside */
+#stage::before, #stage::after { content: ''; position: absolute; left: 0; right: 0; height: 0; background: #030306; z-index: 3; transition: height 0.6s ease; pointer-events: none; }
+#stage::before { top: 0; }
+#stage::after { bottom: 0; }
+#stage.insert::before, #stage.insert::after { height: 7%; }
+#stage.insert #weather { opacity: 0; }
+#weather { transition: opacity 0.6s ease; }
+#loc, #candles, #toasts, #flash { z-index: 4; }
