@@ -36,6 +36,10 @@ BAROMETER: There. South, far off: a breath of air that smells of wet earth and o
 + [{?seen("fi_enter")|Go back to the Magistrate's Hole.|A windbreak far out on the north side, where an old man is fishing.}] -> fi_enter
 + [{?seen("ba_enter")|Go back to the bathhouse.|A bathhouse, half sunk in snow, breathing steam.}] -> ba_enter
 + [{?seen("gu_enter")|Go back to the chestnut brazier.|A chestnut brazier on the corner of Needle Row.}] -> gu_enter
++ [{?seen("lp_enter")|Go back to the Evening Lamp's sledge.|A printing sledge by the gate, its window pasted over with newsprint: THE EVENING LAMP.}] -> lp_enter
++ [{?seen("na_enter")|Walk back out to the Narrows.|Out past the last lanterns, toward the Narrows. You know the way. You have always known the way.}] -> na_enter
++ {!seen("st_boy") && time >= t("21:00")} [A Rime boy with a pole of paper lanterns has been following you for three stalls.] -> st_boy
++ {!seen("st_dance") && time >= t("21:30")} [Behind a hut on Salt Row, somebody is counting to three, over and over.] -> st_dance
 + [Sit down on the bench at the edge of the lanterns, and listen to yourself.] -> bench_enter
 + [Talk to Ilse.] -> il_talk
 + {time >= t("23:00")} [It is nearly midnight. Go to the Chandelier for the Ball.] -> a2_midnight
@@ -65,6 +69,9 @@ ILSE: "Examiner."
 * {act3} "Are you afraid?" -> il_afraid
 * {seen("bv_tenderness")} "Did you ever meet Clara?" -> il_clara
 * {ilse >= 1} "Why do you put up with me?" -> il_why_me
+* {met_wren} "You knew Wren Aske. From before." -> il_wren
+* {ilse_narrows} "The Narrows. You used to go out there." -> il_narrows
+* {act3} "What will you do after tonight?" -> il_after
 + {!act3} [Leave it.] -> hub2
 + {act3} [Leave it.] -> hub3
 
@@ -132,6 +139,7 @@ ILSE: She is quiet for a few steps. "I read it first. Do you want to know what i
 * "No." -> il_fen_no
 
 == il_fen_yes
+@insert v_snowname
 ILSE: "One word. A name." She says it carefully, as if it might break. "*Feliks.*"
 UNDERTOW: There. Somebody said it. Out loud, on the ice, at night. And you didn't wake up.
 KEEL: Breathe. You are still standing. Look — your feet are still on the ice. It held.
@@ -163,6 +171,7 @@ ILSE: "It's the only thing I've ever left out. In eleven years."
 => il_talk
 
 == il_notebook
+@insert v_notebook
 ILSE: She doesn't pretend not to understand. Her hand goes to her coat, where the second book lives, small and black and soft at the corners from handling.
 ILSE: "Things Not Entered." She says it like the title of a hymn. "What people say that isn't evidence. What a widow said about her husband's hands. What a man told his dog on the morning of his hanging. I can't put them in the record, and I can't let them go. So."
 * "May I read it?" -> il_nb_read

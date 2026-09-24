@@ -21,6 +21,7 @@ TENDERNESS: He's not being cruel. He's being accurate. There's a difference, and
 => gu_talk
 
 == gu_buy
+@insert v_chestnuts
 @sfx paper
 > He shovels hot chestnuts into a paper cone with a practised flick and holds out a mittened hand. You pay him. He counts it twice.
 APPETITE: Hot. Split. The flesh inside floury and sweet. You burn your fingers on the first one and don't care.

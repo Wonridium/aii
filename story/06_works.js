@@ -19,6 +19,7 @@ SCRUTINY: At the building's foot, a pipe as thick as a bench runs out under the 
 * [Go in. Find whoever's on duty.] -> wo_in
 
 == wo_outfall
+@insert v_pipe
 > You walk down to the edge of the lead. The ice at its margin is soft as wet biscuit; Ilse stops a pace behind you and says nothing, which is how you know she wants to say *don't*.
 > You take off a glove and put your hand in the water.
 BAROMETER: Warm. Not cool-for-winter. *Warm*. Warm like a bath someone left running and forgot. Warm like the inside of a mouth.

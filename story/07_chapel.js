@@ -256,6 +256,7 @@ UNDERTOW: And that's all. That's all there is of him. The rest went down the sea
 * "Deaconess. Would you hold his hand? Warm it." -> cp_fist_warm
 
 == cp_fist_warm_self
+@insert v_fist
 > You take the fist in both your hands and hold it, and you don't pull, and you don't press anything, and you don't say anything at all. After a while — longer than seems reasonable, not as long as you feared — the fingers open by themselves.
 => cp_fist_open
 
@@ -295,6 +296,7 @@ HESPER: "Evidence." She says it the way you'd say the name of a disease. "Well. 
 == cp_feliks
 HESPER: She looks up at you for a long moment. Whatever she sees makes her put the mug down.
 HESPER: "Child," she says. "That's the only kind we light."
+@insert v_jars
 > She takes a jar from the shelf — an ordinary jam jar, the label soaked off — and a stub of candle, and she hands them both to you, and a spill of paper, and she points at the brazier.
 HESPER: "His name?"
 * "Feliks. Feliks Marrow." -> cp_feliks_2

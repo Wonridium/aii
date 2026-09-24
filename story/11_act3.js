@@ -62,6 +62,8 @@ BAROMETER: The Glass is groaning between songs — long low sounds, like a ship'
 + {!seen("a3_ball")} [Walk through the Ball.] -> a3_ball
 + {seen("fi_enter") && !tomasz_moved && !tomasz_stays} [Tomasz, still on his stool on the seam.] -> a3_tomasz
 + {gull_runner && !gull_used} [Send Gull running with a message.] -> a3_gull
++ {met_wren && !f_press && !wren_refused} [The Evening Lamp's sledge. A sheet can reach every hut in an hour.] -> a3_press
++ {knows_tarlane && !f_tarlane && !tuula_refused} [Tar Lane. Eleven huts standing straight on the seam, and a boy's grandmother who won't leave.] -> a3_tarlane
 + [Sit on the bench for a moment, and listen to yourself.] -> bench_enter
 + {!ilse_stays} [Talk to Ilse.] -> il_talk
 + [Take the bandstand at the Chandelier. Close the Glass.] -> ad_start
@@ -106,6 +108,7 @@ AINO: "I can't." She lets go of the rope. It swings, gently, in the dark. "If I 
 
 == a3_aino_ring
 AINO: She takes a breath. The kind you take before going under.
+@insert v_bell
 > She pulls.
 @sfx bell
 > Up on the roof, a small iron bell — no bigger than a bucket — opens its mouth, and a sound comes out of it far larger than the bell. It goes out across the Glass low and round and patient, the way the Warden's voice must have sounded when he told people where to put their houses.
@@ -128,6 +131,7 @@ AINO: "I'll keep ringing till they're off." She doesn't look round. "Go do whate
 @music ball
 @title THE CHANDELIER — THE THAW BALL
 @time 40
+@insert v_raining
 > The Ball, at its height, is a storm of colour: six hundred people in their best, red and wine and green and yellow, turning under a chandelier that is now visibly *raining*, the icicles among its crystals streaming meltwater onto the dancers, who shriek and laugh and dance through it. The floor hums under your feet — not the pleasant ringing of a sprung floor, but a deep, grinding note, felt more than heard.
 ?{knows_lotte} HACKLES: A little girl in a yellow ribbon, dancing with her aunt near the stage. Nine years old. On the seam.
 DANCER: A young man in a borrowed tailcoat seizes your hand. "Dance, Examiner! It's the Thaw Ball! Nobody's allowed to be sad!" And he's gone again into the crowd before you can answer.

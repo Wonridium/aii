@@ -44,6 +44,7 @@ AINO: "He didn't have friends. He had Odile, and the bottle, and me." The bolt d
 => hut_inside
 
 == hut_open
+@insert v_chisel
 @sfx door
 > You open the door. The end of a long-handled ice chisel arrives at the hollow of your throat, cold as a fact.
 HACKLES: *Don't move.* Chisel. Sharp end. Throat. Our throat. Don't move a single hair.
@@ -96,6 +97,7 @@ DECORUM: Too much bow. You bowed at her. She is sixteen and her grandfather is u
 
 == hut_eat
 @if sig == "APPETITE"
+@insert v_cake
 @sfx paper
 > Your hand is already in your coat pocket. Greaseproof paper. A honey cake from the vendor at the ferry, only a little squashed. You hold it out.
 @else
@@ -160,6 +162,7 @@ AINO: She watches you do it. Some small, clenched thing in her shoulders lets go
 => hut_talk
 
 == hut_trap
+@insert v_trapdoor
 > The trapdoor opens onto a square of ice set into the hut's floor, like a window into a cellar. It is the Warden's measuring hole — the place he would drill each morning, read the ice, and write it down.
 SCRUTINY: The ice in the square is new: clearer and darker than the rest, a skin only a finger or two thick. The edges of the square are chiselled fresh — pale shavings still frozen to the lip. Someone cut this hole open last night, big enough for a man, and it has healed over since.
 BAROMETER: And it has not healed well. The new ice is weeping at the edges. There is warmth coming up from underneath it — a faint, sick warmth, like the breath of a sleeping animal.
@@ -180,6 +183,7 @@ AINO: "Don't touch that." Very quietly.
 => hut_talk
 
 == hut_log
+@insert v_ledger
 @sfx paper
 > The ledger is enormous, bound in oilcloth, its pages swollen with forty-one winters of damp. The Warden's hand is large and careful, the letters built one at a time like cairns. Most of it is numbers: holes, depths, the colour of the ice. The last pages are something else.
 DOC: *3 Deepwinter.* Hole 1 (gate): 61 cm, black. Hole 7 (Chandelier steps): 58 cm, black. Good ice. Sang low all night. Declared the season open. O.C. paid 40. Told her it was 40 last year also. She said inflation.
@@ -213,6 +217,7 @@ DOC: THE AUBADE EVENING LAMP — *BOY PULLED FROM BASIN; BROTHER LOST.* — "...
 > Beneath it, a column of others, each cut out with care. EXAMINER MARROW RULES ON TALLOW STREET DEATHS. THE *BRISK* WIDOWS: EXAMINER SITS THROUGH THE NIGHT. STURMHAVEN — EXAMINER IN THE RUBBLE. THE BELL-TOWER INQUEST: "BEFORE OR AFTER?" Dozens of them. Twenty-nine years of them, yellowed to different shades, like a wall of weather.
 > The last is from this autumn: EXAMINER TAKES LEAVE AFTER FENNIMORE INQUEST. In the margin, in the same large careful hand as the log, in pencil: *Poor boy.*
 @set knows_rescue
+@done narrows
 @thought closer
 @done why
 @xp 30

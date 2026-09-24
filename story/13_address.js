@@ -6,7 +6,7 @@ CANDLE.script(String.raw`
 @title THE CHANDELIER — THE BANDSTAND
 @set ad_time = time
 @set proof = proof_fist || proof_under
-@set score = (f_bell ? 2 : 0) + (f_moth ? 1 : 0) + (f_odile ? 1 : 0) + (f_bran ? 1 : 0) + (f_pim ? 1 : 0) + (f_quell ? 1 : 0) + (proof ? 1 : 0) + (quell_diverted ? 1 : 0) + (f_paint && !f_pim ? 1 : 0) + (time <= t("01:20") ? 1 : 0) - (time >= t("02:20") ? 1 : 0)
+@set score = (f_bell ? 2 : 0) + (f_moth ? 1 : 0) + (f_odile ? 1 : 0) + (f_bran ? 1 : 0) + (f_pim ? 1 : 0) + (f_quell ? 1 : 0) + (proof ? 1 : 0) + (quell_diverted ? 1 : 0) + (f_paint && !f_pim ? 1 : 0) + (f_press ? 1 : 0) + (f_tarlane ? 1 : 0) + (time <= t("01:20") ? 1 : 0) - (time >= t("02:20") ? 1 : 0)
 @sfx sing
 > You walk back into the Chandelier through the warm rain, and the ice sings under every step.
 @if f_odile
@@ -26,6 +26,11 @@ CANDLE.script(String.raw`
 @sfx paper
 > In the doorway, a thin man in a good grey coat unfolds a sheet of cream notepaper and reads it aloud in a voice that is quiet and very clear and carries to every corner: *"The Great Mutual withdraws all cover from any policyholder remaining on the ice after one o'clock."* All over the hall people are taking out their papers and looking at the backs of them.
 @endif
+@if f_press
+@sfx paper
+> Everywhere you look, in the hands of dancers and waiters and the band's second trumpet, there is a damp grey sheet with three words on it in wooden type an inch high. People are reading it aloud to each other over the music. Someone has pasted one to the Chandelier's door.{?pressed_notice| Under the big type, small: *I am not drunk. — A. Sarre, Warden.*|}
+@endif
+?{f_tarlane} > Coming past Tar Lane you saw it dark, every door propped, a single paper lantern left burning on the last step — red, a little crooked — for whoever might be under the ice.
 @if f_paint
 > And on the ice outside, all along the Warden's blue-flag line from the Chandelier's doors to the shore, somebody has painted enormous red arrows on white, two metres long, still wet, gleaming in the lantern light. A drunk could follow them with his eyes shut.
 @endif

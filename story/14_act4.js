@@ -19,6 +19,7 @@ CANDLE.script(String.raw`
 @sfx crack
 > It does not crack. That is the first thing everyone will say afterward, for years, in every kitchen in Aubade: *it didn't crack.* There is no great report, no rifle-shot, no warning.
 > The Glass simply stops being there.
+@insert v_crack
 > Along a line as straight as a ruled margin — from the Works on the shore, through the Warden's hut, under the Chandelier and on toward the Narrows — the ice gives up the idea of being a floor. It happens at {?quell_diverted|twelve minutes past five|nine minutes to five}. The candles let go of each other. The sugar goes back to being water.
 @sfx bell
 > The Warden's hut tips, slowly, like a man bowing, and slides into the black. Its little bell rings once as it goes, by itself.
@@ -136,6 +137,7 @@ MOTH: "The Warden's girl will receive her grandfather's valuation. Whatever you 
 
 == a4_hesper
 @if body_lost
+@insert v_lantern
 HESPER: She has set a single jar-lamp on the shingle at the water's edge, pointing out toward the Narrows, where the floes are going. "For him," she says. "Since I haven't got him to put it by." She looks up at you. "And for your one, child. I lit him again. I thought he'd want company."
 @else
 HESPER: The Warden lies on a door on the shingle, under his sheet, with a jar-lamp at his head. The Deaconess sits beside him on her camp stool with her tea. "They carried him off on their shoulders," she says. "Six cutters. He'd have been unbearable about it."
@@ -174,6 +176,7 @@ AINO: "I didn't read it." A pause. "I held it up to the lamp once. I didn't read
 
 == a4_letter
 @title A LETTER, ON FISH PAPER
+@insert v_letter
 DOC: Examiner Marrow,
 DOC: If the girl has given you this, then I am the dead man and you are the one who writes the line, and that is right. I have been reading your lines in the *Evening Lamp* for twenty-nine years. You write them clean. I cut them out and keep them in my log with the ice. There are worse places to be kept.
 DOC: I will tell you plain, because you are a man who likes things plain.

@@ -65,6 +65,9 @@
     FENWICK: { name: 'FENWICK' },
     TOMASZ: { name: 'TOMASZ WICK' },
     SAARI: { name: 'MA SAARI' },
+    WREN: { name: 'WREN ASKE' },
+    BOY: { name: 'A LANTERN BOY' },
+    TUULA: { name: 'OLD TUULA' },
     OSKAR: { name: 'OSKAR' },
     IB: { name: 'GRANDFATHER IB' },
     DAGNY: { name: 'DAGNY' },
@@ -176,6 +179,15 @@
     moBonus: 1,
     problem: 'Your mother began a sentence at the kitchen table a week after the Narrows, and never finished it. You have finished it for her every night since, always the same way. What if it had another ending?',
     solution: 'It should have been dark earlier. It should have been a colder winter. It should have been me at the window sooner. Everyone who was on the ice that night has been finishing the sentence with their own name.\n\nThe Warden thought it was his arm\u2019s length. Your mother thought it was her window. Aino thinks it is her grip. You think it is your dare. It was the ice. It was grey, and posted, and it would have gone under a cat.\n\nNobody is heavy enough to break the ice alone. That is the whole terrible mercy of it.'
+  };
+
+  C.THOUGHTS.lightkept = {
+    name: 'A Light for the Not-Found',
+    time: 80,
+    during: { LEDGER: -1 },
+    after: { KEEL: 1, TENDERNESS: 1 },
+    problem: 'For forty-four winters somebody kept a candle burning in a heap of ice at the edge of the posted line, for a boy nobody had found. You kept something too: a silence, cut square, re-cut every winter, stacked with care. Which is the better way to keep the dead?',
+    solution: 'A silence keeps the dead the way ice keeps a hand: perfectly, exactly, and out of reach. A light keeps them the other way. It does not bring anyone back. It does not even pretend to. It only says, every dusk, in a language the water understands: this is where the shore is, if you want it.\n\nThe Warden could not save your brother, so he kept a light for him. You could not save your brother, so you kept him under the ice. It turns out these are the same grief, standing on two sides of the water. One of them can be lit.'
   };
 
   C.THOUGHT_SLOTS = 3;

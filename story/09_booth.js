@@ -37,6 +37,7 @@ MOTH: "Examiner." The adding machine's handle comes down, *ka-chunk*. "You've br
 + [Leave the booth.] -> hub2
 
 == bo_how
+@insert v_valuation
 MOTH: He lights up like a lamp. "Every citizen of Aubade is valued at birth, revalued at twenty-one, and annually thereafter. Health. Trade. District. Parentage. Habits — drink is a deduction, marriage an addition, cycling a small deduction, prayer neutral. It's printed on the back of your papers."
 MOTH: "When you die, the Mutual pays your valuation to whomever you've left. If you die by misadventure, in full. Unlawfully, in full, and then we collect from whoever did it. Self-inflicted, nothing. Open — we hold it, pending."
 MOTH: "Before the Settlement, a man's death was worth whatever his employer's conscience said it was. Which was usually a ham." He smiles. "Now it's worth a number. Numbers don't feel anything, Examiner. That is their great mercy. A number cannot be disappointed in you."

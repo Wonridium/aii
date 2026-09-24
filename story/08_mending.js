@@ -75,6 +75,7 @@ MARTA: "Ailo!" Her face lights and falls in the same instant. "He mended his own
 MARTA: "The Marrow *boys*." Her hand goes to her mouth. "Oh, sweet Saint Ondine. You're the little one."
 @if !knows_rescue
 @set knows_rescue
+@done narrows
 @thought closer
 @done why
 @xp 30
@@ -85,6 +86,7 @@ UNDERTOW: There it is. From the mouth of a woman with pins on her apron. Forty-f
 
 == me_night
 MARTA: She sits down on her own crate, the one with only one nail. "I was twenty. Just started on the Glass. It was dusk, and someone shouted — *boys on the Narrows* — and the whole Glass came running. You never saw anything like it. A town running."
+@insert v_boathook
 MARTA: "Ailo got there first. Eighteen. He had a boat-hook. He lay down flat on the ice — that's what you do, you spread yourself out — and he wriggled out to the hole like a seal, and he got the little one by the collar, and he dragged him out, and he threw him back to us, and you were—" she stops. "You were *blue*, love. You were the colour of a mussel."
 MARTA: "And then he went back." Her voice drops. "Into the water. Himself. For the other one. Three times. We had to hold him down on the ice in the end, five of us, and he was fighting us, and screaming a name."
 * "Feliks." -> me_night_name

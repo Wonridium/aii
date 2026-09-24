@@ -190,6 +190,19 @@ UNDERTOW: *...All right.* No reproach in it. Only patience, forty-four years of 
 > *Saari's Steam* was rebuilt on the shore below the Customs House, and the Parliament of the Steam sits there still, in towels, and has not yet reached a verdict.
 ?{f_paint} > *Dagny* painted her red arrows along the Warden's blue line again the next winter, and the winter after, by request. The Mutual pays her for it. She has not yet decided how she feels about that.
 @endif
+@if met_wren
+@if f_press
+> *Wren Aske* lost the Works' advertising and the Mutual's, and gained, by summer, more readers than the *Evening Lamp* had ever had. The special sheet hangs framed over her stone. {?pressed_notice|It is the Warden's notice, word for word, with two brass rules under *I am not drunk*.|It says THE ICE WILL GO TONIGHT, and it is a little crooked, because she set it in a hurry.} She has never once printed the word *Laughing* next to your name again.
+@elif wren_holds
+> *Wren Aske* never printed the drunk Warden. She printed the Line instead, the morning after, and under it the whole story of the seam, and lost her back page for it. She says it was the best trade she ever made.
+@else
+> *Wren Aske* printed WARDEN DROWNS IN DRINK at five in the morning, as the Glass was going down. It is the only copy of the *Evening Lamp* nobody in Aubade has kept. She has one. She keeps it on the spike.
+@endif
+@endif
+?{f_tarlane} > *Tar Lane* was the first street on the Glass to empty that night. Old Tuula lived to ninety-one and read ice for the new Warden every winter until she died, rudely, in Rime. Her grandson has the best ears on the Basin.
+@if seen("na_cairn")
+> *The cairn at the Narrows* went out with the ice at five in the morning. {?na_lit|It was still burning when it went — Pim saw it from the shore, a small gold point turning slowly on a floe, going out toward the open sea: the only light on the water that nobody was steering.|Nobody saw it go. It had already gone dark.}{?na_paper| Beside it, for a while, a crooked red paper lantern, bobbing.|}
+@endif
 > *Deaconess Hesper* is still on the Glass, on her stool, with her tea. She has been given forty-two fish.
 @if !(met_marta || knows_ilse_mother)
 @elif ilse_hurt
@@ -200,7 +213,8 @@ UNDERTOW: *...All right.* No reproach in it. Only patience, forty-four years of 
 > *Marta Varga* still mends coats on Needle Row every winter, and still says she'll leave when the bell rings.
 @endif
 @if ilse >= 4
-> *Ilse Varga* remained the clerk of the Third Bench. That spring she began, in the evenings, to write something that was not a record. She has not said what. It is not entered.
+> *Ilse Varga* remained the clerk of the Third Bench. That spring she began, in the evenings, to write something that was not a record. {?ilse_will_write|She told you so, once, in the rain, and made you promise not to tell. You haven't.|She has not said what.} It is not entered.
+?{knows_ilse_wren && met_wren} > On Thursdays she has coffee with Wren Aske, in the sledge by the gate, out of cups with half a handle. Neither of them has ever said what they talk about.
 ?{ilse_card} > She opened one of her father's cards. One. What it said is not entered either.
 @elif ilse >= 2
 > *Ilse Varga* remained the clerk of the Third Bench. She types your Last Lines. Once, in autumn, she left a thaw-cake on your desk, wrapped in greaseproof paper, and neither of you mentioned it.
@@ -224,7 +238,7 @@ UNDERTOW: *...All right.* No reproach in it. Only patience, forty-four years of 
 @else
 > He still walks the long way round the bay.
 @endif
-> *Feliks Marrow*, fourteen, is somewhere now. {?brother_entered|He is in the record, in a clerk's best hand.|}{?lit_feliks| He has a lamp on the shore.|} He pushed, or he was climbed upon. It is the same motion, seen from two sides of the water.
+> *Feliks Marrow*, fourteen, is somewhere now. {?brother_entered|He is in the record, in a clerk's best hand.|}{?lit_feliks| He has a lamp on the shore.|}{?said_name| His brother said his name out loud, once, at the Narrows, in the wind, and the ice held.|} He pushed, or he was climbed upon. It is the same motion, seen from two sides of the water.
 -> e_final
 
 == e_final

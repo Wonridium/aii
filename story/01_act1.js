@@ -86,6 +86,7 @@ UNDERTOW: His eyes are open because he wanted to see. He went down there to *loo
 => a1_exam
 
 == a1_hand
+@insert v_hand
 > His left hand is pressed palm-out against the ice from below, fingers spread. The knuckles of the first two fingers are split and pale.
 @sfx knock
 > He was knocking. Before the cold took the knock out of him, he was knocking.
@@ -107,6 +108,7 @@ SCRUTINY: So why is the underside of this ice rough enough to cut a man's hand?
 => a1_exam
 
 == a1_rope
+@insert v_rope
 > From his waist a rope trails away into the black — good hemp line, oiled against the wet, knotted at his belly. It runs off for an arm's length beneath the ice and then simply stops.
 SCRUTINY: The end of it. Look at the end. Not frayed. Not chafed through. *Cut* — one clean stroke, the fibres flush as a trimmed cigar.
 SLEIGHT(10): And the knot at his waist is a Warden's bowline: a bowline with a slip-tuck, so it can be pulled loose under load. You tie that one yourself, on yourself, so you can get *out* of it. He tied it. Nobody tied it for him.
@@ -117,6 +119,7 @@ LEDGER: Item: a man goes under the ice on a rope. Item: someone holds the other 
 => a1_exam
 
 == a1_belt
+@insert v_watch
 > A leather belt. A ring of iron keys. A tin whistle on a thong. A sheath for a clasp-knife — empty. In the breast pocket, visible through the ice, the brass disc of a watch, its chain floated up like a question mark.
 SCRUTINY(8): The face of the watch is turned just enough to read. The hands say twelve minutes past three.
 LEDGER: Watches do not stop when men die. They stop when they are wet, or unwound. This one went into the water at three-twelve, or near it. This morning — or last night, depending on what sort of person you are.
