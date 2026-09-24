@@ -1041,13 +1041,13 @@
     put(X.s, slab, 0, 0, -1.5);
     var above = plane(20, 20, E(0x3a2a6a)); above.rotation.x = -Math.PI / 2; above.position.y = 1.6; X.s.add(above);
     // your gloved hand pressing down from above, and a small pale hand rising to meet it
-    var big = handModel(M(0x1c1a22), 7); big.rotation.x = -Math.PI / 2; big.rotation.z = Math.PI; put(X.s, big, 0, 0.2, -1.2);
-    var small = handModel(M(0xe0e4f0, { emissive: 0x3a3a50 }), 4.6); small.rotation.x = Math.PI / 2; put(X.s, small, 0.05, -0.2, -1.25);
+    var big = hand2(M(0x1c1a22), 7, 0.05, 0.2); big.rotation.x = -Math.PI / 2; big.rotation.z = Math.PI; put(X.s, big, 0, 0.25, -1.2);
+    var small = hand2(M(0xd0d6ea, { emissive: 0x2a2a44 }), 3.6, 0.08, 0.22); small.rotation.x = -0.25; put(X.s, small, 0.05, -0.78, -1.15);
     glow(X.s, 0, -0.3, -1.1, 2.4, 0xc8d0ff, 0.45);
     glow(X.s, 0, 1.2, -2, 8, 0x8a6ad0, 0.35);
     var L = new T.PointLight(0xa890ff, 1.2, 6, 1.2); L.position.set(0, -1, 0.5); X.s.add(L);
     snow(X, 260, [-3, 3, -3, -0.2, -3, 1.5], { up: true, size: 0.05, color: 0xb0c0ff, opacity: 0.55, speed: 0.3 });
-    X.upd.push(function (t) { small.position.y = -0.2 + Math.sin(t * 0.8) * 0.01; });
+    X.upd.push(function (t) { small.position.y = -0.78 + Math.sin(t * 0.8) * 0.01; });
     cam(X, 0.2, -0.75, 1.6, 0, -0.1, -1.3, 55, 0.04);
   };
 
@@ -1073,7 +1073,12 @@
     lanternString(X, new T.Vector3(-10, 4.5, -14), new T.Vector3(10, 4.8, -12), 1, 16, [0xffcf7a, 0xff9a6a, 0xf4e0a0]);
     lamp(X, 0, 2.2, -10, 0xffb060, 1.2, 20, { glow: 3 });
     // Pim, waving, running up
-    people(X, [{ x: 0.8, z: 4, h: 1.8, coat: 0x26303e, pose: 'wave', hat: 'cap', hatColor: 0x1a2230, long: true, ry: -0.2 }]);
+    people(X, [{ x: 0.8, z: 4, h: 1.8, coat: 0x26303e, pose: 'wave', hat: 'cap', hatColor: 0x1a2230, long: true, ry: -0.2, scarf: 0x7a7a80 }]);
+    path(X, [[0, 14], [0, 0], [0.5, -12]], 3.2);
+    crowd(X, 14, -4, 4, -8, -1, { lanterns: 0.2 });
+    crowd(X, 5, -7, -3, 2, 6, {});
+    stall(X, -5.5, -3, 0.5, { goods: 'bread' }); stall(X, 5.8, -2, -0.6, { goods: 'lamps' });
+    sledge(X, 3.2, 6, 0.3, {}); barrel(X, -3.4, 5, 0); snowbank(X, -6, 8, 2); snowbank(X, 6.5, 9, 2.4);
     snow(X, 400, [-10, 10, 0, 10, -6, 12], { size: 0.07 });
     cam(X, 0.6, 1.7, 12, 0, 3.2, 0, 52, 0.12);
   };
@@ -1591,6 +1596,13 @@
       groups.push({ x: f[0] + Math.cos(a) * d, z: f[1] + Math.sin(a) * d, ry: -a - Math.PI / 2, pose: R() < 0.5 ? 'sit' : 'stand', seat: 0, h: rr(1.3, 1.85), coat: pick([0x5a3a3a, 0x3a3a4a, 0x6a5a3a, 0x2a2a2a]), wide: 1.3, hat: pick([null, 'hood', 'cap']) });
     }
     people(X, groups);
+    // what they carried off the ice
+    for (var b = 0; b < 8; b++) pick([sledge, crates, barrel])(X, rr(-10, 12), rr(10, 16), rr(0, 6));
+    crowd(X, 16, -12, 12, 12, 18, { lanterns: 0.25 });
+    var ch = new T.Group(), stoneM = M(0x3a3640);
+    put(ch, box(14, 7, 6, stoneM), 0, 3.5, 0); put(ch, box(15, 0.6, 7, M(0x2a2630)), 0, 7.2, 0);
+    for (var w = 0; w < 6; w++) { put(ch, plane(1, 1.8, E(0xffc070)), -5 + w * 2, 3, 3.02); }
+    put(X.s, ch, 12, 0, 30, -0.4);
     cam(X, 4, 5, 22, -2, 1, -10, 52, 0.15);
   };
 
@@ -1645,6 +1657,10 @@
     // the red flag the Warden left
     put(X.s, cyl(0.015, 0.015, 1, M(0x5a4030), 4), 1.3, 0.5, -0.9).rotation.z = 0.3;
     put(X.s, plane(0.3, 0.2, M(0xa82a2a, { side: T.DoubleSide })), 1.5, 0.95, -0.9);
+    // other holes, other flags, far off
+    [[-4, -4, 0xc03030], [3.5, -6, 0x2a5aa8], [-7, -9, 0xc8b050], [6, -12, 0xc03030]].forEach(function (fh) { fishHole(X, fh[0], fh[1], { color: fh[2] }); });
+    dryingRack(X, -2.6, -2.4, 0.4); sledge(X, 2.4, 1.6, -0.7, { load: false }); snowbank(X, -3, 2, 1.2); snowbank(X, 3.5, -2.5, 1.6);
+    people(X, [{ x: -4.4, z: -4.3, h: 1.6, coat: 0x3a3a4a, pose: 'sit', seat: 0, hat: 'fur', ry: 0.5 }, { x: 3.9, z: -6.4, h: 1.7, coat: 0x4a3a2a, pose: 'hands', hat: 'hood', ry: -0.6 }]);
     // the Glass behind
     for (var h = 0; h < 12; h++) hut(X, rr(-20, 20), rr(-40, -22), rr(0, 6), { smoke: false });
     glow(X.s, 0, 5, -40, 30, 0xffa050, 0.25);
@@ -1694,6 +1710,8 @@
     var L = new T.PointLight(0xff7a30, 2, 7, 1.3); L.position.set(0.6, 1.1, 0.6); X.s.add(L);
     X.upd.push(function (t) { L.intensity = 2 * (0.85 + 0.15 * Math.sin(t * 10) * Math.sin(t * 3.3)); });
     snow(X, 120, [0.3, 0.9, 0.8, 3, 0.2, 0.6], { up: true, size: 0.05, color: 0xffa040, opacity: 0.9, additive: true, speed: 1.5 });
+    crowd(X, 9, -1.6, 1.8, -12, -3, { lanterns: 0.3 });
+    stall(X, -1.6, -6, Math.PI / 2, { goods: 'jars', light: false });
     // Gull on his crate, cap and the constable's scarf
     put(X.s, box(0.45, 0.4, 0.4, M(0x5a4030)), -0.1, 0.2, 0.5);
     people(X, [{ x: -0.1, z: 0.5, h: 1.3, coat: 0x3a3228, pose: 'sit', seat: 0.02, hat: 'cap', hatColor: 0x2a2420, scarf: 0x7a7a80, ry: 0.6, long: false }]);
@@ -1717,6 +1735,10 @@
     pavilion(X, 4, -40, { light: false });
     glow(X.s, 4, 6, -34, 34, 0xffa050, 0.3);
     for (var i = 0; i < 30; i++) hut(X, rr(-30, 30), rr(-55, -20), rr(0, 6), {});
+    lanternString(X, new T.Vector3(-14, 4, -18), new T.Vector3(10, 4.5, -16), 1.4, 20, [0xffcf7a, 0xff9a6a, 0xf4e0a0]);
+    crowd(X, 12, -10, 12, -19, -12, { lanterns: 0.3 });
+    path(X, [[0, 2], [1.5, -8], [3, -18]], 1.6);
+    snowbank(X, -2.4, 0.8, 1); snowbank(X, 2.6, -1, 1.3);
     snow(X, 400, [-8, 8, 0, 8, -10, 4], { size: 0.07 });
     cam(X, 0.2, 1.9, 3.4, 1, 1.4, -30, 50, 0.08);
   };

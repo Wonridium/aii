@@ -170,6 +170,7 @@
     var div = document.createElement('div');
     div.className = entryClass(e);
     div.innerHTML = entryHTML(e);
+    if (e.k === 'line' && C.SKILLS[e.spk]) div.style.setProperty('--sc', skillColor(e.spk));
     if (!instant && !reduceMotion) div.classList.add('fresh');
     if (e.k === 'sys' && e.open) {
       div.classList.add('clickable');
@@ -314,6 +315,19 @@
     $('ptsBadge').textContent = S.pts;
   }
 
+  // A place's name, painted large across the scene for a moment, as a
+  // chapter heading is.
+  var placeTimer = 0;
+  function placeCard(t) {
+    var el = $('placecard');
+    if (!el || fastUntilChoice || settings.pace === 'instant') return;
+    var parts = t.split(/\s+[—–-]\s+/);
+    el.innerHTML = '<span class="pc-main">' + esc(parts[0]) + '</span>' + (parts[1] ? '<span class="pc-sub">' + esc(parts[1]) + '</span>' : '') + '<span class="pc-time">' + fmtTime(S.clock) + '</span>';
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(placeTimer);
+    placeTimer = setTimeout(function () { el.classList.remove('on'); }, 3600);
+  }
+
   // ---------------------------------------------------------------- effects
   function advance(n) {
     S.clock += n;
@@ -373,7 +387,10 @@
     switch (name) {
       case 'bg': S.bg = arg; S.insert = null; setBg(arg); break;
       case 'insert': S.insert = arg; showInsert(arg); break;
-      case 'title': S.title = interp(arg); renderHUD(); break;
+      case 'title':
+        var nt = interp(arg);
+        if (nt && nt !== S.title && !S.insert) placeCard(nt);
+        S.title = nt; renderHUD(); break;
       case 'clock': S.clock = parseTime(arg); renderHUD(); break;
       case 'time': advance(+arg); break;
       case 'set':
@@ -1093,7 +1110,17 @@
   }
 
   // ---------------------------------------------------------------- boot
+  function paperGrain() {
+    try {
+      var c = document.createElement('canvas'); c.width = c.height = 160;
+      var g = c.getContext('2d'), im = g.createImageData(160, 160);
+      for (var i = 0; i < im.data.length; i += 4) { var v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = Math.random() * 12; }
+      g.putImageData(im, 0, 0);
+      document.documentElement.style.setProperty('--grain', 'url(' + c.toDataURL() + ')');
+    } catch (e) { /* plain panel */ }
+  }
   function boot(data) {
+    paperGrain();
     feed = $('feed');
     choicesEl = $('choices');
     stage = $('stage');

@@ -113,7 +113,9 @@ button { font: inherit; color: inherit; }
 #panel {
   display: flex; flex-direction: column; min-height: 0;
   background:
+    var(--grain, none),
     radial-gradient(120% 60% at 100% 0%, rgba(80, 60, 110, 0.10), transparent 60%),
+    radial-gradient(90% 50% at 0% 100%, rgba(216, 100, 58, 0.05), transparent 60%),
     linear-gradient(180deg, var(--panel-a), var(--panel-b));
   border-left: 1px solid var(--rule);
   box-shadow: -30px 0 60px rgba(0, 0, 0, 0.45);
@@ -373,3 +375,28 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--rule); 
 #stage.insert #weather { opacity: 0; }
 #weather { transition: opacity 0.6s ease; }
 #loc, #candles, #toasts, #flash { z-index: 4; }
+
+/* ------------------------------------------------------------ art direction */
+/* the inner voices wear their attribute's colour as a thin brush-line */
+.entry.skill { padding-left: 12px; border-left: 2px solid var(--sc, var(--rule)); }
+.entry.skill .tx { color: color-mix(in srgb, var(--ink) 88%, var(--sc, var(--ink))); }
+.entry.cold .tx, .entry.feliks .tx { font-style: italic; }
+.entry.line:not(.skill) .spk { color: #cfc6b4; letter-spacing: 0.04em; }
+.choice { position: relative; }
+.choice::before { content: ''; position: absolute; left: -10px; top: 50%; width: 4px; height: 0; background: var(--ember); transform: translateY(-50%); transition: height 160ms ease; }
+.choice:hover::before, .choice:focus-visible::before { height: 70%; }
+/* a painted frame around the scene */
+#frame { position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  box-shadow: inset 0 0 120px rgba(4, 4, 8, 0.75), inset 0 0 0 1px rgba(255, 240, 220, 0.04); }
+/* the name of a place, as a chapter heading */
+#placecard { position: absolute; left: 0; right: 0; bottom: 16%; z-index: 4; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; transform: translateY(8px);
+  transition: opacity 900ms ease, transform 1200ms ease; text-align: center; padding: 0 16px; }
+#placecard.on { opacity: 1; transform: none; }
+#placecard .pc-main { font-family: 'IM Fell English SC', Georgia, serif; font-size: clamp(26px, 4.2vw, 54px); letter-spacing: 0.08em; color: #f1e6cf;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8); }
+#placecard .pc-sub { font-family: 'IM Fell English', Georgia, serif; font-style: italic; font-size: clamp(15px, 1.8vw, 22px); color: #d9c9a8; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9); }
+#placecard .pc-time { font-family: var(--mono); font-size: 12px; letter-spacing: 0.3em; color: var(--ember); margin-top: 4px; text-shadow: 0 1px 6px #000; }
+#placecard::before { content: ''; width: min(420px, 60%); height: 1px; background: linear-gradient(90deg, transparent, rgba(241, 230, 207, 0.6), transparent); order: 1; }
+@media (prefers-reduced-motion: reduce) { #placecard { transition: none; } }
+#placecard .pc-sub, #placecard .pc-time { order: 2; }
