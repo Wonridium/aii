@@ -6,8 +6,10 @@
 
 Every line spoken by one of the sixteen skills (and by the dead) is read by a
 Piper neural voice, then dragged down into the register of an old radio
-narrator: pitched down with its formants kept, pushed into soft saturation for
-grit, a flutter of vocal fry, chest EQ, compression and a little room. The
+narrator: pitched down with its formants kept, a gentle saturation for grain,
+chest EQ, a strong presence lift so the consonants cut through the music,
+compression and only a breath of room. Clarity comes first: every setting was
+checked against a speech recogniser (word error rate on a fixed sample). The
 lines are packed into MP3 sprites under voice/ and indexed in
 js/voice-manifest.js, keyed by the same hash the engine computes.
 
